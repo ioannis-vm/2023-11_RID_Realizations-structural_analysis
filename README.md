@@ -30,10 +30,9 @@ $ python extra/structural_analysis/src/hazard_analysis/cs_selection_process_outp
 ```
 This generates:
 `extra/structural_analysis/results/site_hazard/required_records_and_scaling_factors.csv`  
-`extra/structural_analysis/results/site_hazard/ground_motion_group.csv`
-
+`extra/structural_analysis/results/site_hazard/ground_motion_group.csv`  
 At this point, download ground motions from the PEER database.
-The `results/site_hazard/rsns_unique_*.txt` files can be used to limit the RSNs in groups of 100. 
+The `results/site_hazard/rsns_unique_*.txt` files can be used to limit the RSNs in groups of 100.
 Store them in `data/ground_motions` in the following directory format:
 ```
 data/ground_motions/PEERNGARecords_Unscaled(0)/
@@ -44,15 +43,11 @@ data/ground_motions/PEERNGARecords_Unscaled(n)/
 ```
 
 Update the scaling factors so that they match with the target UHSs.
-
 ```
 $ python extra/structural_analysis/src/hazard_analysis/update_scaling_factors.py
 ```
-
 This generates the concisely named `required_records_and_scaling_factors_adjusted_to_cms.csv`, containing the scaling factors used in the study.
-It also generates figures of the ground motion suites and against the target spectra for each hazard level.
-
-`max_scaling_factor.py` can be used to determine the resulting maximum scaling after the scaling factor modification.
-
+It also generates figures of the ground motion suites and against the target spectra for each hazard level.  
+`max_scaling_factor.py` can be used to determine the resulting maximum scaling after the scaling factor modification.  
 `check_gm_file_exists.py` can be used to verify that all ground motion files that are needed have been downloaded and can be parsed without any issues.
 
