@@ -7,6 +7,9 @@
 $ cd {...}/2023-11_RID_Realizations
 # Add it to PYTHONPATH
 $ export PYTHONPATH=$PYTHONPATH:$(pwd)
+# Install additional requirements
+$ cd extra/structural_analysis
+$ python -m pip install -r requirements_extra.txt
 ```
 
 ## Seismic hazard analysis and ground motion selection
