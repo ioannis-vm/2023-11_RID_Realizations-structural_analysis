@@ -51,3 +51,13 @@ It also generates figures of the ground motion suites and against the target spe
 `max_scaling_factor.py` can be used to determine the resulting maximum scaling after the scaling factor modification.  
 `check_gm_file_exists.py` can be used to verify that all ground motion files that are needed have been downloaded and can be parsed without any issues.
 
+## Structural analysis
+
+The individual time-history analyses results can be reproduced as follows:
+```
+$ python extra/structural_analysis/src/structural_analysis/response_2d.py '--archetype' 'scbf_9_ii' '--hazard_level' 'X' '--gm_number' 'Y' '--analysis_dt' '0.01' '--direction' 'Z'
+```
+where X ranges from 1 to 25, Y from 1 to 40, and Z can be either "x" or "y".
+
+We used HPC to run all the analyses.
+
