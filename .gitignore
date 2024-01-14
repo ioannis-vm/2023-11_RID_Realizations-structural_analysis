@@ -3,3 +3,7 @@
 /external_tools/
 /figures/
 /results/
+*.AT2
+*.VT2
+*.DT2
+_SearchResults.csv
