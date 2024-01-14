@@ -10,11 +10,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from src.util import read_study_param
-
-# from src.util import retrieve_peer_gm_spectra
-from extra.structural_analysis.src.hazard_analysis.interp_uhs import (
-    interpolate_pd_series,
-)
+from extra.structural_analysis.src.util import interpolate_pd_series
+from extra.structural_analysis.src.util import retrieve_peer_gm_spectra
 
 # load existing scaling factor dataframe
 df_scaling = pd.read_csv(
@@ -53,10 +50,14 @@ num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
 if not os.path.exists("extra/structural_analysis/figures"):
     os.makedirs("extra/structural_analysis/figures")
 
+t_bar = float(
+    read_study_param(
+        f"extra/structural_analysis/data/{archetype}/period_closest"
+    )
+)
+
 with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as pdf:
     for hz in range(num_hz):
-        t_bar = float(read_study_param(f"extra/structural_analysis/data/{archetype}/period_closest"))
-
         # retrieve target mean from CS_Selection
         mean = pd.read_csv(
             f"extra/structural_analysis/results/site_hazard/{archetype}/target_mean_{hz+1}.csv",
@@ -83,26 +84,26 @@ with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as p
 
         df_scaling.loc[(f"hz_{hz+1}", "SF")] *= added_scaling
 
-        # # retrieve scaled ground motion records
-        # df_sub = df_scaling.loc[(archetype, f"hz_{hz+1}")].T
-        # df_sub["RSN"] = df_sub["RSN"].astype(int)
-        # scaling = df_sub["SF"]
-        # rsns = df_sub["RSN"]
-        # scaling.index = rsns
-        # spectra = retrieve_peer_gm_spectra(rsns) * scaling
+        # retrieve scaled ground motion records
+        df_sub = df_scaling.loc[(f"hz_{hz+1}")].T
+        df_sub["RSN"] = df_sub["RSN"].astype(int)
+        scaling = df_sub["SF"]
+        rsns = df_sub["RSN"]
+        scaling.index = rsns
+        spectra = retrieve_peer_gm_spectra(rsns) * scaling
 
-        # suite_mean = np.log(spectra).mean(axis=1)
-        # suite_std = np.log(spectra).std(axis=1)
+        suite_mean = np.log(spectra).mean(axis=1)
+        suite_std = np.log(spectra).std(axis=1)
 
         # plot suite and target
         fig, ax = plt.subplots()
         figtitle = " ".join(archetype.upper().split("_")) + ", " + f"HZ LVL {hz+1}"
-        # for i, col in enumerate(spectra):
-        #     if i == 0:
-        #         lab = "Records"
-        #     else:
-        #         lab = None
-        #     ax.plot(spectra[col], linewidth=0.80, color="0.6", label=lab)
+        for i, col in enumerate(spectra):
+            if i == 0:
+                lab = "Records"
+            else:
+                lab = None
+            ax.plot(spectra[col], linewidth=0.80, color="0.6", label=lab)
         ax.plot(np.exp(mean) * added_scaling, color="k", linestyle="dashed")
         ax.plot(
             np.exp(mean + 1.96 * stdv) * added_scaling,
@@ -115,18 +116,18 @@ with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as p
             color="k",
             linestyle="dashed",
         )
-        # ax.plot(
-        #     np.exp(suite_mean),
-        #     color="red",
-        #     linestyle="dotted",
-        #     label="Suite $\\mu$ $\\pm$ 1.96 $\\sigma$",
-        # )
-        # ax.plot(
-        #     np.exp(suite_mean + 1.96 * suite_std), color="red", linestyle="dotted"
-        # )
-        # ax.plot(
-        #     np.exp(suite_mean - 1.96 * suite_std), color="red", linestyle="dotted"
-        # )
+        ax.plot(
+            np.exp(suite_mean),
+            color="red",
+            linestyle="dotted",
+            label="Suite $\\mu$ $\\pm$ 1.96 $\\sigma$",
+        )
+        ax.plot(
+            np.exp(suite_mean + 1.96 * suite_std), color="red", linestyle="dotted"
+        )
+        ax.plot(
+            np.exp(suite_mean - 1.96 * suite_std), color="red", linestyle="dotted"
+        )
         ax.plot(uhs)
         ax.axvline(x=t_bar, color="k")
         ax.set(xscale="log", yscale="log", title=figtitle)

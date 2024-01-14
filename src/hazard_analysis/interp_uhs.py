@@ -7,22 +7,9 @@ import argparse
 import numpy as np
 from scipy.interpolate import interp1d
 import pandas as pd
+from extra.structural_analysis.src.util import interpolate_pd_series
 
 # use: python -m src.hazard_analysis.interp_uhs --period 0.75 --mape 1e-1
-
-
-def interpolate_pd_series(series, values):
-    """
-    Interpolates a pandas series for specified index values.
-    """
-    idx_vec = series.index.to_numpy()
-    vals_vec = series.to_numpy()
-    ifun = interp1d(idx_vec, vals_vec)
-    if isinstance(values, float):
-        return float(ifun(values))
-    if isinstance(values, np.ndarray):
-        return ifun(values)
-    return ValueError(f"Invalid datatype: {type(values)}")
 
 
 def main():
