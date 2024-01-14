@@ -1,1 +1,3 @@
-osmg
+osmg==0.2.2
+opensees==0.0.52
+
