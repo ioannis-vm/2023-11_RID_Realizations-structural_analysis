@@ -68,6 +68,8 @@ $ python extra/structural_analysis/src/structural_analysis/response_vectors.py
 $ python extra/structural_analysis/src/structural_analysis/residual_drift.py
 # Gather EDPs of all hazard levels in one file
 $ python extra/structural_analysis/src/structural_analysis/gather_edps.py
+# move the resulting file to the main repo
+cp extra/structural_analysis/results/edp.parquet data/edp_extra.parquet
 ```
 
 `review_plot_aggregated_response.py` and `review_plot_response.py` can be used to plot the analysis results.
