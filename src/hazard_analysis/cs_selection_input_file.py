@@ -59,7 +59,10 @@ for hz in range(num_hz):
             df.at[(f"hz_{hz+1}"), "Ebar"],
             vs30,
             f"extra/structural_analysis/results/site_hazard/{archetype}/",
-            f"extra/structural_analysis/results/site_hazard/{archetype}/required_records_hz_{hz+1}.txt",
+            (
+                f"extra/structural_analysis/results/site_hazard/"
+                f"{archetype}/required_records_hz_{hz+1}.txt"
+            ),
             archetype,
         ]
     )

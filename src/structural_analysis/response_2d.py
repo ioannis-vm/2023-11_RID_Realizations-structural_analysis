@@ -2,18 +2,15 @@
 Run nonlinear time-history analysis to get the building's response
 """
 
-import os
-import importlib
 import argparse
 import numpy as np
 import pandas as pd
 from osmg import solver
 from osmg.gen.query import ElmQuery
 from osmg.ground_motion_utils import import_PEER
-from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
-from src.util import read_study_param
 from src.util import store_info
 from extra.structural_analysis.src.util import retrieve_peer_gm_data
+from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
 
 # ~~~~~~~~~~~~~~~~~~~~~~ #
 # set up argument parser #
@@ -25,7 +22,7 @@ parser.add_argument("--hazard_level")
 parser.add_argument("--gm_number")
 parser.add_argument("--analysis_dt")
 parser.add_argument("--direction")
-parser.add_argument("--output_dir_name", default='response_modal')
+parser.add_argument("--output_dir_name", default='individual_files')
 parser.add_argument("--progress_bar", default=False)
 parser.add_argument('--custom_path', default=None)
 parser.add_argument('--damping', default='modal')
@@ -45,7 +42,7 @@ damping = args.damping
 # gm_number = 3
 # analysis_dt = 0.01
 # direction = 'x'
-# output_dir_name = 'response_modal'
+# output_dir_name = 'individual_files'
 # progress_bar = True
 # custom_path = '/tmp/test'
 # damping = 'modal'
@@ -107,7 +104,8 @@ else:
 #
 
 modal_analysis = solver.ModalAnalysis(
-    mdl, {loadcase.name: loadcase}, num_modes=num_levels*6)
+    mdl, {loadcase.name: loadcase}, num_modes=num_levels * 6
+)
 modal_analysis.settings.store_forces = False
 modal_analysis.settings.store_fiber = False
 modal_analysis.settings.restrict_dof = [False, True, False, True, False, True]
@@ -170,7 +168,7 @@ nlth.run(
     drift_check=0.10,  # 10% drift
     time_limit=47.95,  # hours
     dampen_out_residual=True,
-    finish_time=0.00,           # means run the entire file
+    finish_time=0.00,  # means run the entire file
 )
 
 

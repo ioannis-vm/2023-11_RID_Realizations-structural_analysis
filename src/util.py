@@ -19,7 +19,8 @@ def retrieve_peer_gm_data(rsn, out_type="filenames", uhs=False):
     if not uhs:
         # determine record group
         groups_df = pd.read_csv(
-            "extra/structural_analysis/results/site_hazard/ground_motion_group.csv", index_col=0
+            "extra/structural_analysis/results/site_hazard/ground_motion_group.csv",
+            index_col=0,
         )
         groups_df.index = groups_df.index.astype(int)
 
@@ -28,7 +29,10 @@ def retrieve_peer_gm_data(rsn, out_type="filenames", uhs=False):
 
         group = groups_df.at[rsn, "group"]
 
-        rootdir = f"extra/structural_analysis/data/ground_motions/PEERNGARecords_Unscaled({group})"
+        rootdir = (
+            f"extra/structural_analysis/data/ground_motions/"
+            f"PEERNGARecords_Unscaled({group})"
+        )
 
     else:
         rootdir = "extra/structural_analysis/data/ground_motions/uhs"
@@ -122,6 +126,19 @@ def interpolate_pd_series(series, values):
     if isinstance(values, np.ndarray):
         return ifun(values)
     return ValueError(f"Invalid datatype: {type(values)}")
+
+
+def file_exists(file_path):
+    """
+    Checks if a file exists at the specified file path.
+
+    Args:
+        file_path (str): The path to the file.
+
+    Returns:
+        bool: True if the file exists, False otherwise.
+    """
+    return os.path.exists(file_path) and os.path.isfile(file_path)
 
 
 def check_last_line(file_path, target_string):

@@ -4,8 +4,6 @@ curve and obtain the Sa value at a given MAPE
 """
 
 import argparse
-import numpy as np
-from scipy.interpolate import interp1d
 import pandas as pd
 from extra.structural_analysis.src.util import interpolate_pd_series
 

@@ -1,6 +1,6 @@
 # Reproducing the results
 
-## Set up envrionment
+## Set up environment
 
 ```
 # Navigate to the project root directory
@@ -19,7 +19,7 @@ $ python -m pip install -r requirements_extra.txt
 $ ./extra/structural_analysis/src/hazard_analysis/site_hazard_curves.sh
 # Determine hazard levels for the multi-stripe analysis
 $ python ./extra/structural_analysis/src/hazard_analysis/site_hazard.py
-# Perofrm seismic hazard deaggregation for each hazard level
+# Perform seismic hazard deaggregation for each hazard level
 $ ./extra/structural_analysis/src/hazard_analysis/site_hazard_deagg.sh
 # Generate the input file for CS Selection, used for ground motion selection with CS targets
 $ python extra/structural_analysis/src/hazard_analysis/cs_selection_input_file.py
@@ -61,3 +61,13 @@ where X ranges from 1 to 25, Y from 1 to 40, and Z can be either "x" or "y".
 
 We used HPC to run all the analyses.
 
+```
+# Gather peak response
+$ python extra/structural_analysis/src/structural_analysis/response_vectors.py
+# Add RIDs
+$ python extra/structural_analysis/src/structural_analysis/residual_drift.py
+# Gather EDPs of all hazard levels in one file
+$ python extra/structural_analysis/src/structural_analysis/gather_edps.py
+```
+
+`review_plot_aggregated_response.py` and `review_plot_response.py` can be used to plot the analysis results.

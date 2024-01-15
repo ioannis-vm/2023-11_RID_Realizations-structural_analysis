@@ -6,7 +6,6 @@ means perfectly match the UHSs at the conditioning period
 import os
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from src.util import read_study_param
@@ -15,7 +14,10 @@ from extra.structural_analysis.src.util import retrieve_peer_gm_spectra
 
 # load existing scaling factor dataframe
 df_scaling = pd.read_csv(
-    "extra/structural_analysis/results/site_hazard/required_records_and_scaling_factors.csv",
+    (
+        "extra/structural_analysis/results/"
+        "site_hazard/required_records_and_scaling_factors.csv"
+    ),
     index_col=[0, 1],
 )
 df_scaling.columns = df_scaling.columns.astype(int)
@@ -51,16 +53,17 @@ if not os.path.exists("extra/structural_analysis/figures"):
     os.makedirs("extra/structural_analysis/figures")
 
 t_bar = float(
-    read_study_param(
-        f"extra/structural_analysis/data/{archetype}/period_closest"
-    )
+    read_study_param(f"extra/structural_analysis/data/{archetype}/period_closest")
 )
 
 with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as pdf:
     for hz in range(num_hz):
         # retrieve target mean from CS_Selection
         mean = pd.read_csv(
-            f"extra/structural_analysis/results/site_hazard/{archetype}/target_mean_{hz+1}.csv",
+            (
+                f"extra/structural_analysis/results/site_hazard/"
+                f"{archetype}/target_mean_{hz+1}.csv"
+            ),
             index_col=0,
             header=None,
         )[1]
@@ -73,7 +76,10 @@ with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as p
         )["Sa"]
 
         stdv = pd.read_csv(
-            f"extra/structural_analysis/results/site_hazard/{archetype}/target_stdv_{hz+1}.csv",
+            (
+                f"extra/structural_analysis/results/"
+                f"site_hazard/{archetype}/target_stdv_{hz+1}.csv"
+            ),
             index_col=0,
             header=None,
         )[1]
@@ -138,5 +144,6 @@ with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as p
 
 # store the updated scaling factors
 df_scaling.to_csv(
-    "extra/structural_analysis/results/site_hazard/required_records_and_scaling_factors_adjusted_to_cms.csv"
+    "extra/structural_analysis/results/site_hazard/"
+    "required_records_and_scaling_factors_adjusted_to_cms.csv"
 )

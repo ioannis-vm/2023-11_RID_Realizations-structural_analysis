@@ -84,7 +84,7 @@ def generate_archetype(
 
     n_parameter = 10.00
 
-    lateral_system, num_levels_str, risk_category = archetype.split("_")
+    _, num_levels_str, _ = archetype.split("_")
     num_levels = int(num_levels_str)
 
     # define the model
@@ -476,10 +476,8 @@ def generate_archetype(
         # add the columns
         for plcmt_tag in ("G1", "G2"):
             if plcmt_tag == "G1":
-                placement = "interior"
                 moment_mod = grav_col_moment_mod_interior
             else:
-                placement = "exterior"
                 moment_mod = grav_col_moment_mod_exterior
             sec = sec_collection.retrieve_by_attr(
                 "name", sections["lateral_cols"][level_tag]
