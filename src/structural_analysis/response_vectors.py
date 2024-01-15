@@ -30,7 +30,7 @@ def process_item(item):
     archetype_code, hz_lvl = item
 
     input_dir = (
-        f"extra/structural_analysis/results/{archetype_code}/response_modal/{hz_lvl}"
+        f"extra/structural_analysis/results/{archetype_code}/individual_files/{hz_lvl}"
     )
     output_dir = f"extra/structural_analysis/results/{archetype_code}/edp/{hz_lvl}"
 
