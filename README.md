@@ -73,3 +73,27 @@ cp extra/structural_analysis/results/edp.parquet data/edp_extra.parquet
 ```
 
 `review_plot_aggregated_response.py` and `review_plot_response.py` can be used to plot the analysis results.
+
+## DVC
+
+As with the main repo, the `data/` and `results/` directories are tracked with DVC.
+
+After cloning the repository and setting up the environment, issue the following command to pull the files:
+```
+$ dvc pull
+```
+
+After making changes, they should be added with DVC and then committed with git.
+```
+
+# changes in data/
+$ dvc add data
+
+# changes in results/
+$ dvc add results
+
+$ dvc push
+$ git add {changed-dvc-files}
+$ git commit -m 'DVC - update results'
+
+```
