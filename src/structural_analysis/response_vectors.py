@@ -32,9 +32,7 @@ def process_item(item):
     input_dir = (
         f"extra/structural_analysis/results/{archetype_code}/response_modal/{hz_lvl}"
     )
-    output_dir = (
-        f"extra/structural_analysis/results/{archetype_code}/edp/{hz_lvl}"
-    )
+    output_dir = f"extra/structural_analysis/results/{archetype_code}/edp/{hz_lvl}"
 
     # determine the number of input files
     # (that should be equal to the number of directories)
@@ -89,3 +87,7 @@ def main():
     num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
     for i in range(num_hz):
         process_item(('scbf_9_ii', f'{i+1}'))
+
+
+if __name__ == '__main__':
+    main()
