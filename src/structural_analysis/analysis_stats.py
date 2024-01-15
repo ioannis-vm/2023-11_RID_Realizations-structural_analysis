@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from itertools import product
 import pandas as pd
-from src.util import read_study_param
+from extra.structural_analysis.src.util import read_study_param
 from extra.structural_analysis.src.util import file_exists
 from extra.structural_analysis.src.util import check_last_line
 from extra.structural_analysis.src.util import check_any_line

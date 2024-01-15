@@ -5,7 +5,7 @@ Plots the aggregated EDPs
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from src.util import read_study_param
+from extra.structural_analysis.src.util import read_study_param
 
 # parameters
 archetype = 'scbf_9_ii'

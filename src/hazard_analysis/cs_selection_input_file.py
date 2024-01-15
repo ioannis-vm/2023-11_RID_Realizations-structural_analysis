@@ -5,7 +5,7 @@ ground motions for each hazard level.
 """
 
 import pandas as pd
-from src.util import read_study_param
+from extra.structural_analysis.src.util import read_study_param
 
 # initialize
 dataframe_rows = []

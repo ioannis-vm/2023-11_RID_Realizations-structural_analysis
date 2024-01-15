@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from src.util import read_study_param
+from extra.structural_analysis.src.util import read_study_param
 from extra.structural_analysis.src.util import interpolate_pd_series
 from extra.structural_analysis.src.util import retrieve_peer_gm_spectra
 

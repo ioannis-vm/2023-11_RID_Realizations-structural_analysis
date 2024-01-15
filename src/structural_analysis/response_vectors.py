@@ -5,7 +5,7 @@ Gather analysis results and form a standard PBEE input file
 import pandas as pd
 from osmg.common import G_CONST_IMPERIAL
 from src.util import store_info
-from src.util import read_study_param
+from extra.structural_analysis.src.util import read_study_param
 
 # pylint: disable=invalid-name
 

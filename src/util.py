@@ -227,3 +227,12 @@ def check_logs(path):
     if fail:
         return "failed"
     return "finished"
+
+
+def read_study_param(param_path):
+    """
+    Read a study parameter from a file.
+    """
+    with open(param_path, "r", encoding="utf-8") as f:
+        data = f.read()
+    return data

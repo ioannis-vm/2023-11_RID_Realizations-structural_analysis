@@ -5,8 +5,8 @@ Determine residual drifts
 from itertools import product
 import pandas as pd
 from tqdm import tqdm
-from src.util import read_study_param
 from src.util import store_info
+from extra.structural_analysis.src.util import read_study_param
 
 
 def main():

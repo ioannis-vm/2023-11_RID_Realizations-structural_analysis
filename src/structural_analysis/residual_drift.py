@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from src.util import store_info
-from src.util import read_study_param
+from extra.structural_analysis.src.util import read_study_param
 from extra.structural_analysis.src.util import check_logs
 
 
