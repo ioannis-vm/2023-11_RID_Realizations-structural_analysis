@@ -8,8 +8,7 @@ $ cd {...}/2023-11_RID_Realizations
 # Add it to PYTHONPATH
 $ export PYTHONPATH=$PYTHONPATH:$(pwd)
 # Install additional requirements
-$ cd extra/structural_analysis
-$ python -m pip install -r requirements_extra.txt
+$ python -m pip install -r extra/structural_analysis/requirements_extra.txt
 ```
 
 ## Seismic hazard analysis and ground motion selection
@@ -76,7 +75,7 @@ cp extra/structural_analysis/results/edp.parquet data/edp_extra.parquet
 
 ## DVC
 
-As with the main repo, the `data/` and `results/` directories are tracked with DVC.
+As with the main repo, the `data/`, `figures/` and `results/` directories are tracked with DVC.
 
 After cloning the repository and setting up the environment, issue the following command to pull the files:
 ```
@@ -91,6 +90,9 @@ $ dvc add data
 
 # changes in results/
 $ dvc add results
+
+# changes in figures/
+$ dvc add figures
 
 $ dvc push
 $ git add {changed-dvc-files}
