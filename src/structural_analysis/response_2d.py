@@ -8,6 +8,7 @@ import pandas as pd
 from osmg import solver
 from osmg.gen.query import ElmQuery
 from osmg.ground_motion_utils import import_PEER
+from osmg.graphics.postprocessing_3d import show_deformed_shape
 from src.util import store_info
 from extra.structural_analysis.src.util import retrieve_peer_gm_data
 from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
@@ -26,6 +27,7 @@ parser.add_argument("--output_dir_name", default='individual_files')
 parser.add_argument("--progress_bar", default=False)
 parser.add_argument('--custom_path', default=None)
 parser.add_argument('--damping', default='modal')
+parser.add_argument('--plot_deformed', default=False)
 
 args = parser.parse_args()
 hazard_level = args.hazard_level
@@ -36,16 +38,18 @@ output_dir_name = args.output_dir_name
 progress_bar = bool(args.progress_bar)
 custom_path = args.custom_path
 damping = args.damping
+plot_deformed = args.plot_deformed
 
 # # debugging
-# hazard_level = '8'
-# gm_number = 3
+# hazard_level = '15'
+# gm_number = 2
 # analysis_dt = 0.01
-# direction = 'x'
+# direction = 'y'
 # output_dir_name = 'individual_files'
 # progress_bar = True
 # custom_path = '/tmp/test'
 # damping = 'modal'
+# plot_deformed = True
 
 mdl, loadcase = scbf_9_ii(direction)
 
@@ -155,7 +159,7 @@ nlth.settings.store_fiber = False
 nlth.settings.store_forces = False
 nlth.settings.store_reactions = True
 nlth.settings.store_release_force_defo = False
-nlth.settings.specific_nodes = specific_nodes
+# nlth.settings.specific_nodes = specific_nodes
 
 nlth.run(
     analysis_dt,
@@ -216,3 +220,23 @@ df.sort_index(axis=1, inplace=True)
 df.to_parquet(
     store_info(f"{output_folder}/results_{direction}.parquet", [gm_filename])
 )
+
+if plot_deformed:
+    show_deformed_shape(
+        nlth,
+        loadcase.name,
+        nlth.results[loadcase.name].n_steps_success - 1,
+        0.00,
+        extrude=True,
+        animation=False,
+        to_figure='/tmp/fig1.png',
+    )
+    show_deformed_shape(
+        nlth,
+        loadcase.name,
+        0,
+        1.00,
+        extrude=True,
+        animation=False,
+        to_figure='/tmp/fig2.png',
+    )
