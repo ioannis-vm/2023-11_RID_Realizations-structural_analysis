@@ -76,6 +76,9 @@ def retrieve_peer_gm_data(rsn, out_type="filenames"):
         return result
 
     if out_type == "spectrum":
+        with open(identified_file, "r", encoding="utf-8") as f:
+            contents = f.read()
+
         contents = contents.split(" -- Scaled Spectra used in Search & Scaling --")[
             1
         ].split("\n\n")[0]
