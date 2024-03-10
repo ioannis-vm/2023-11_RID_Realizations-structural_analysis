@@ -17,14 +17,14 @@ def main() -> None:
     rcs = ("ii", "iv")
     cases = [f"{c}_{s}_{r}" for c in codes for s in stories for r in rcs]
 
-    num_hz = int(read_study_param("data/study_vars/m"))
-    vs30 = float(read_study_param("data/study_vars/vs30"))
+    num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
+    vs30 = float(read_study_param("extra/structural_analysis/data/study_vars/vs30"))
 
     dfs_arch = []
     conditioning_periods = pd.Series(np.empty(len(cases)), index=cases)
 
     for arch in cases:
-        t_bar = float(read_study_param(f"data/{arch}/period_closest"))
+        t_bar = float(read_study_param(f"extra/structural_analysis/data/{arch}/period_closest"))
         conditioning_periods[arch] = t_bar
 
         dfs_hz = []
