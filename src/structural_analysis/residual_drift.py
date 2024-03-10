@@ -47,11 +47,11 @@ types = ("scbf",)
 stors = ("9",)
 rcs = ("ii",)
 
-ngm = int(read_study_param("extra/structural_analysis/data/study_vars/ngm"))
+ngm_cs = int(read_study_param("extra/structural_analysis/data/study_vars/ngm_cs"))
 nhz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
 
 hzs = [f"{i+1}" for i in range(nhz)]
-gms = [f"gm{i+1}" for i in range(ngm)]
+gms = [f"gm{i+1}" for i in range(ngm_cs)]
 
 total = len(types) * len(stors) * len(rcs) * len(hzs)
 pbar = tqdm(total=total, unit="item")

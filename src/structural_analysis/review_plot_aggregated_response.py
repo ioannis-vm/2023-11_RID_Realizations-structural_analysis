@@ -12,7 +12,7 @@ archetype = 'scbf_9_ii'
 fig_type = 'PID'  # 'PID', 'PFA', 'PFV', 'RID'
 
 num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
-num_gms = int(read_study_param("extra/structural_analysis/data/study_vars/ngm"))
+num_gm_cs = int(read_study_param("extra/structural_analysis/data/study_vars/ngm_cs"))
 
 hzs = list(range(4, num_hz, 5))
 

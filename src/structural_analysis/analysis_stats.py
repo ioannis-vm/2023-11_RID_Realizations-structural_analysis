@@ -62,13 +62,13 @@ def get_max_subdiv_reported(logfile):
 
 if __name__ == "__main__":
     nhz = int(read_study_param('extra/structural_analysis/data/study_vars/m'))
-    ngm = int(read_study_param('extra/structural_analysis/data/study_vars/ngm'))
+    ngm_cs = int(read_study_param('extra/structural_analysis/data/study_vars/ngm_cs'))
 
     atypes = ("scbf",)
     stors = ("9",)
     rcs = ("ii",)
     hzs = [f"{i+1}" for i in range(nhz)]
-    gms = [f"gm{i+1}" for i in range(ngm)]
+    gms = [f"gm{i+1}" for i in range(ngm_cs)]
 
     keys = []
     vals = {'status': [], 'start_time': [], 'end_time': [], 'sub': []}

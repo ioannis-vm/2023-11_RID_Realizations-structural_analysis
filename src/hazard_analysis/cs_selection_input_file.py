@@ -61,7 +61,7 @@ for hz in range(num_hz):
             f"extra/structural_analysis/results/site_hazard/{archetype}/",
             (
                 f"extra/structural_analysis/results/site_hazard/"
-                f"{archetype}/required_records_hz_{hz+1}.txt"
+                f"{archetype}/required_records_cs_hz_{hz+1}.txt"
             ),
             archetype,
         ]

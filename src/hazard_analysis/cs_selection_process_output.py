@@ -12,7 +12,7 @@ dataframe_rows = []
 # archetype information
 
 num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
-ngm = int(read_study_param("extra/structural_analysis/data/study_vars/ngm"))
+ngm_cs = int(read_study_param("extra/structural_analysis/data/study_vars/ngm_cs"))
 
 # initialize
 dfs_arch = []
@@ -29,13 +29,13 @@ dfs_hz = []
 for hz in range(num_hz):
     path = (
         f"extra/structural_analysis/results/site_hazard/"
-        f"{archetype}/required_records_hz_{hz+1}"
+        f"{archetype}/required_records_cs_hz_{hz+1}"
     )
     df = pd.read_csv(path, skiprows=6, sep="	", index_col=0, header=[0])
     df.columns = [x.strip() for x in df.columns]
     df = df.loc[:, ("Record Sequence Number", "Scale Factor")]
     df = df.sort_values(by="Record Sequence Number")
-    df.index = range(1, ngm + 1)
+    df.index = range(1, ngm_cs + 1)
     df.index.name = "Record Number"
     df.columns = ["RSN", "SF"]
     dfs_hz.append(df)
@@ -47,7 +47,7 @@ df = df.T
 # store deaggregation results
 df.to_csv(
     "extra/structural_analysis/results/site_hazard/"
-    "required_records_and_scaling_factors.csv"
+    "required_records_and_scaling_factors_cs.csv"
 )
 
 # obtain unique RSNs to download from the ground motion database

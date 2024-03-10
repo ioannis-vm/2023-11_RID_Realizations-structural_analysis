@@ -78,7 +78,7 @@ for lvl in range(num_levels):
 
 df_records = pd.read_csv(
     "extra/structural_analysis/results/site_hazard/"
-    "required_records_and_scaling_factors_adjusted_to_cms.csv",
+    "required_records_and_scaling_factors_cs_adjusted_to_cms.csv",
     index_col=[0, 1],
 )
 

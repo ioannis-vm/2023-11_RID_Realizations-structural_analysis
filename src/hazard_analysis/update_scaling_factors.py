@@ -16,7 +16,7 @@ from extra.structural_analysis.src.util import retrieve_peer_gm_spectra
 df_scaling = pd.read_csv(
     (
         "extra/structural_analysis/results/"
-        "site_hazard/required_records_and_scaling_factors.csv"
+        "site_hazard/required_records_and_scaling_factors_cs.csv"
     ),
     index_col=[0, 1],
 )
@@ -145,5 +145,5 @@ with PdfPages("extra/structural_analysis/figures/gm_selection_spectra.pdf") as p
 # store the updated scaling factors
 df_scaling.to_csv(
     "extra/structural_analysis/results/site_hazard/"
-    "required_records_and_scaling_factors_adjusted_to_cms.csv"
+    "required_records_and_scaling_factors_cs_adjusted_to_cms.csv"
 )

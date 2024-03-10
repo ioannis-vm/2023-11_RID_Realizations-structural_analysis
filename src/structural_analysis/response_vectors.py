@@ -37,7 +37,7 @@ def process_item(item):
     # determine the number of input files
     # (that should be equal to the number of directories)
     num_inputs = int(
-        read_study_param("extra/structural_analysis/data/study_vars/ngm")
+        read_study_param("extra/structural_analysis/data/study_vars/ngm_cs")
     )
 
     response_dirs = [
