@@ -47,7 +47,7 @@ do
 	# perform seismic hazard deaggregation
 	mkdir -p extra/structural_analysis/results/$code/site_hazard
 	sa=$(python extra/structural_analysis/src/hazard_analysis/interp_uhs.py --period $period --mape $mape)
-	java -classpath $jar_file_path:extra/structural_analysis/src/hazard_analysis DisaggregationCalc $period $latitude $longitude $vs30 $sa extra/structural_analysis/results/$code/site_hazard/deaggregation_$i.txt
+	java -classpath $jar_file_path:extra/structural_analysis/src/hazard_analysis DisaggregationCalc $period $latitude $longitude $vs30 $sa extra/structural_analysis/results/site_hazard/$code/deaggregation_$i.txt
 
 	i=$(($i+1))	
 
