@@ -4,45 +4,29 @@ Utility functions
 
 import os
 from io import StringIO
+from glob2 import glob
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
 
-def retrieve_peer_gm_data(rsn, out_type="filenames", uhs=False):
+def retrieve_peer_gm_data(rsn, out_type="filenames"):
     """
-    Parses the `_SearchResults.csv` file inside a ground motion group
-    folder and retrieves the unscaled RotD50 response spectrum or the
-    ground motion filenames.
+    Searches all available `_SearchResults.csv` for a given RSN,
+    identifies the right folder and retrieves the unscaled RotD50
+    response spectrum or the ground motion filenames.
+
     """
 
-    if not uhs:
-        # determine record group
-        groups_df = pd.read_csv(
-            "extra/structural_analysis/results/site_hazard/ground_motion_group.csv",
-            index_col=0,
-        )
-        groups_df.index = groups_df.index.astype(int)
+    def get_gm_data(search_results_file):
+        """
+        Helper function that reads certain contents from a PEER
+        `_SearchResults.csv` file.
 
-        if rsn not in groups_df.index:
-            raise ValueError(f"rsn not found in round_motion_group.csv: {rsn}")
+        """
+        with open(search_results_file, "r", encoding="utf-8") as f:
+            contents = f.read()
 
-        group = groups_df.at[rsn, "group"]
-
-        rootdir = (
-            f"extra/structural_analysis/data/ground_motions/"
-            f"PEERNGARecords_Unscaled({group})"
-        )
-
-    else:
-        rootdir = "extra/structural_analysis/data/ground_motions/uhs"
-
-    file_path = f"{rootdir}/_SearchResults.csv"
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        contents = f.read()
-
-    if out_type == "filenames":
         contents = contents.split(" -- Summary of Metadata of Selected Records --")[
             1
         ].split("\n\n")[0]
@@ -50,8 +34,28 @@ def retrieve_peer_gm_data(rsn, out_type="filenames", uhs=False):
 
         df = pd.read_csv(data, index_col=2)
 
-        if rsn not in df.index:
-            raise ValueError(f"rsn not found: {rsn}")
+        return df
+
+    # Find all `_SearchResults.csv` files
+    files = glob(
+        'extra/structural_analysis/data/ground_motions/*/*/_SearchResults.csv'
+    )
+
+    # Identify the one containing the specified `rsn`
+    identified_file = None
+    for file_path in files:
+        data = get_gm_data(file_path)
+        if rsn in data.index:
+            identified_file = file_path
+            break
+
+    if not identified_file:
+        raise ValueError(f"rsn not found: {rsn}")
+
+    rootdir = os.path.dirname(identified_file)
+
+    if out_type == "filenames":
+        df = get_gm_data(identified_file)
 
         filenames = df.loc[
             rsn,
@@ -90,9 +94,6 @@ def retrieve_peer_gm_data(rsn, out_type="filenames", uhs=False):
         df.columns.name = "RSN"
         df.columns = df.columns.astype(int)
         df.index.name = "T"
-
-        if rsn not in df.columns:
-            raise ValueError(f"rsn not found: {rsn}")
 
         return df[rsn]
 
