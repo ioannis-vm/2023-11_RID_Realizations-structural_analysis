@@ -21,7 +21,7 @@ rcs = ("ii", "iv")
 cases = [f"{c}_{s}_{r}" for c in codes for s in stories for r in rcs]
 
 num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
-ngm = int(read_study_param("extra/structural_analysis/data/study_vars/ngm"))
+ngm = int(read_study_param("extra/structural_analysis/data/study_vars/ngm_cs"))
 
 # initialize
 dfs_arch = []
@@ -60,7 +60,7 @@ df = df.T
 df.to_csv(
     store_info(
         "extra/structural_analysis/results/site_hazard/"
-        "required_records_and_scaling_factors.csv"
+        "required_records_and_scaling_factors_cs.csv"
     )
 )
 
