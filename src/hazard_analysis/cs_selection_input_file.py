@@ -24,7 +24,9 @@ def main() -> None:
     conditioning_periods = pd.Series(np.empty(len(cases)), index=cases)
 
     for arch in cases:
-        t_bar = float(read_study_param(f"extra/structural_analysis/data/{arch}/period_closest"))
+        t_bar = float(
+            read_study_param(f"extra/structural_analysis/data/{arch}/period_closest")
+        )
         conditioning_periods[arch] = t_bar
 
         dfs_hz = []
@@ -72,7 +74,7 @@ def main() -> None:
                     f"extra/structural_analysis/results/site_hazard/{arch}/",
                     f"required_records_hz_{hz+1}.txt",
                     arch,
-                    hz+1,
+                    hz + 1,
                 ]
             )
     df_css = pd.DataFrame(

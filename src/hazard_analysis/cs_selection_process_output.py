@@ -36,7 +36,10 @@ for arch in cases:
     # initialize
     dfs_hz = []
     for hz in range(num_hz):
-        path = f"extra/structural_analysis/results/site_hazard/{arch}/required_records_hz_{hz+1}"
+        path = (
+            f"extra/structural_analysis/results/site_hazard/"
+            f"{arch}/required_records_hz_{hz+1}"
+        )
         df = pd.read_csv(path, skiprows=6, sep="	", index_col=0, header=[0])
         df.columns = [x.strip() for x in df.columns]
         df = df.loc[:, ("Record Sequence Number", "Scale Factor")]
@@ -56,7 +59,8 @@ df = df.T
 # file
 df.to_csv(
     store_info(
-        "extra/structural_analysis/results/site_hazard/required_records_and_scaling_factors.csv"
+        "extra/structural_analysis/results/site_hazard/"
+        "required_records_and_scaling_factors.csv"
     )
 )
 
