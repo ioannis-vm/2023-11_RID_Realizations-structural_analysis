@@ -131,6 +131,7 @@ for row = numRows:-1:1
     Vs30 = data{row, 6};
     outputDir = data{row, 7}{1};
     outputFile = data{row, 8}{1};
+    hazard_level = data{row, 10};
 
 
     %% User inputs begin here
@@ -164,7 +165,7 @@ for row = numRows:-1:1
 
     % other parameters to scale motions and evaluate selections 
     selectionParams.isScaled   = 1;
-    selectionParams.maxScale   = 3.0;
+    selectionParams.maxScale   = 5.0;
     selectionParams.tol        = 10;
     selectionParams.optType    = 0; 
     selectionParams.penalty    = 0;
@@ -239,8 +240,8 @@ for row = numRows:-1:1
     % Compute target mean and covariance at all periods in the database
     targetSa = get_target_spectrum(knownPer, selectionParams, indPer, rup);
 
-    writematrix(vertcat(selectionParams.TgtPer, targetSa.meanReq)', sprintf('%s/target_mean_%d.csv', outputDir, row));
-    writematrix(vertcat(selectionParams.TgtPer, sqrt(diag(targetSa.covReq))')', sprintf('%s/target_stdv_%d.csv', outputDir, row));
+    writematrix(vertcat(selectionParams.TgtPer, targetSa.meanReq)', sprintf('%s/target_mean_%d.csv', outputDir, hazard_level));
+    writematrix(vertcat(selectionParams.TgtPer, sqrt(diag(targetSa.covReq))')', sprintf('%s/target_stdv_%d.csv', outputDir, hazard_level));
 
     % Define the spectral accleration at Tcond that all ground motions will be scaled to
     selectionParams.lnSa1 = targetSa.meanReq(selectionParams.indTcond); 
