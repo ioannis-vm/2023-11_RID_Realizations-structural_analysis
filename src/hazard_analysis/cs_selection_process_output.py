@@ -28,7 +28,9 @@ dfs_arch = []
 conditioning_periods = pd.Series(np.empty(len(cases)), index=cases)
 
 for arch in cases:
-    t_bar = float(read_study_param(f"extra/structural_analysis/data/{arch}/period_closest"))
+    t_bar = float(
+        read_study_param(f"extra/structural_analysis/data/{arch}/period_closest")
+    )
     conditioning_periods[arch] = t_bar
 
     # initialize
@@ -53,7 +55,9 @@ df = df.T
 # store deaggregation results for all achetypes in the form of a csv
 # file
 df.to_csv(
-    "extra/structural_analysis/results/site_hazard/required_records_and_scaling_factors.csv"
+    store_info(
+        "extra/structural_analysis/results/site_hazard/required_records_and_scaling_factors.csv"
+    )
 )
 
 # obtain unique RSNs to download from the ground motion database
@@ -62,6 +66,7 @@ rsns = pd.Series(rsns).sort_values()
 rsns.index = range(len(rsns))
 # num_times = (df.xs('RSN', level=2).astype(int)
 #              .unstack().unstack().value_counts())
+
 
 # determine which ones we already have
 def get_available_rsn_list() -> tuple[list[int], list[int]]:
@@ -75,6 +80,7 @@ def get_available_rsn_list() -> tuple[list[int], list[int]]:
             required_rsns.append(rsn)
     return avail_rsns, required_rsns
 
+
 avail_rsns, required_rsns = get_available_rsn_list()
 print(
     f'{float(len(avail_rsns))/float(len(rsns))*100:.0f}% '
@@ -87,10 +93,12 @@ num_groups = ceil(len(required_rsns) / 100)
 for group in range(num_groups):
     istart = 100 * group
     iend = min(100 + 100 * group, len(required_rsns))
-    gm_group[required_rsns.iloc[istart:iend]] = group
+    gm_group[required_rsns[istart:iend]] = group
     with open(
-        f"extra/structural_analysis/results/site_hazard/rsns_unique_{group+1}_2.txt",
+        store_info(
+            f"extra/structural_analysis/results/site_hazard/rsns_unique_{group+1}_2.txt"
+        ),
         "w",
         encoding="utf-8",
     ) as f:
-        f.write(", ".join([f"{r}" for r in required_rsns.iloc[istart:iend]]))
+        f.write(", ".join([f"{r}" for r in required_rsns[istart:iend]]))
