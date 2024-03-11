@@ -72,6 +72,7 @@ def main() -> None:
                     f"extra/structural_analysis/results/site_hazard/{arch}/",
                     f"required_records_hz_{hz+1}.txt",
                     arch,
+                    hz+1,
                 ]
             )
     df_css = pd.DataFrame(
@@ -85,6 +86,7 @@ def main() -> None:
             "outputDir",
             "outputFile",
             "code",
+            "hazard_level",
         ],
     )
     df_css.to_csv(
