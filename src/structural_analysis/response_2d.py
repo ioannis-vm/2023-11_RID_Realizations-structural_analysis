@@ -2,16 +2,16 @@
 Run nonlinear time-history analysis to get the building's response
 """
 
+import importlib
 import argparse
+from typing import Union
 import numpy as np
 import pandas as pd
 from osmg import solver
 from osmg.gen.query import ElmQuery
 from osmg.ground_motion_utils import import_PEER
-from osmg.graphics.postprocessing_3d import show_deformed_shape
 from src.util import store_info
 from extra.structural_analysis.src.util import retrieve_peer_gm_data
-from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
 
 # ~~~~~~~~~~~~~~~~~~~~~~ #
 # set up argument parser #
@@ -19,6 +19,7 @@ from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--archetype")
+parser.add_argument("--suite_type")
 parser.add_argument("--hazard_level")
 parser.add_argument("--gm_number")
 parser.add_argument("--analysis_dt")
@@ -27,9 +28,10 @@ parser.add_argument("--output_dir_name", default='individual_files')
 parser.add_argument("--progress_bar", default=False)
 parser.add_argument('--custom_path', default=None)
 parser.add_argument('--damping', default='modal')
-parser.add_argument('--plot_deformed', default=False)
 
 args = parser.parse_args()
+archetype = args.archetype
+suite_type = args.suite_type
 hazard_level = args.hazard_level
 gm_number = int(args.gm_number)
 analysis_dt = float(args.analysis_dt)
@@ -38,9 +40,10 @@ output_dir_name = args.output_dir_name
 progress_bar = bool(args.progress_bar)
 custom_path = args.custom_path
 damping = args.damping
-plot_deformed = args.plot_deformed
 
 # # debugging
+# archetype = 'scbf_9_ii'
+# suite_type = 'cs'
 # hazard_level = '15'
 # gm_number = 2
 # analysis_dt = 0.01
@@ -49,18 +52,23 @@ plot_deformed = args.plot_deformed
 # progress_bar = True
 # custom_path = '/tmp/test'
 # damping = 'modal'
-# plot_deformed = True
 
-mdl, loadcase = scbf_9_ii(direction)
+# load archetype building
+archetypes_module = importlib.import_module(
+    "extra.structural_analysis.src.structural_analysis.archetypes_2d"
+)
+try:
+    archetype_builder = getattr(archetypes_module, archetype)
+except AttributeError as exc:
+    raise ValueError(f"Invalid archetype code: {archetype}") from exc
+
+mdl, loadcase = archetype_builder(direction)
 
 # from osmg.graphics.preprocessing_3d import show
 # show(mdl, loadcase, extrude=True)
 
 num_levels = len(mdl.levels) - 1
-level_heights = []
-for level in mdl.levels.values():
-    level_heights.append(level.elevation)
-level_heights = np.diff(level_heights)
+level_heights = np.diff([level.elevation for level in mdl.levels.values()])
 
 lvl_nodes = []
 base_node = list(mdl.levels[0].nodes.values())[0].uid
@@ -74,22 +82,27 @@ specific_nodes = lvl_nodes + [n.uid for n in mdl.levels[0].nodes.values()]
 eqr = ElmQuery(mdl)
 for lvl in range(num_levels):
     nd = eqr.search_node_lvl(0.00, 0.00, lvl + 1)
+    assert nd is not None
     specific_nodes.append(nd.uid)
 
-df_records = pd.read_csv(
-    "extra/structural_analysis/results/site_hazard/"
-    "required_records_and_scaling_factors_cs_adjusted_to_cms.csv",
-    index_col=[0, 1],
-)
+if suite_type == 'cs':
+    df_records = pd.read_csv(
+        "extra/structural_analysis/results/site_hazard/"
+        "required_records_and_scaling_factors_cs_adjusted_to_cms.csv",
+        index_col=[0, 1],
+    )
 
-rsn = int(df_records.at[(f"hz_{hazard_level}", "RSN"), str(gm_number)])
-scaling = df_records.at[(f"hz_{hazard_level}", "SF"), str(gm_number)]
+    rsn = int(df_records.at[(f"hz_{hazard_level}", "RSN"), str(gm_number)])
+    scaling = df_records.at[(f"hz_{hazard_level}", "SF"), str(gm_number)]
 
-dir_idx = {"x": 0, "y": 1}
-gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
-gm_data = import_PEER(gm_filename)
-gm_dt = gm_data[1, 0] - gm_data[0, 0]
-ag = gm_data[:, 1] * scaling
+    dir_idx = {"x": 0, "y": 1}
+    gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
+    gm_data = import_PEER(gm_filename)
+    gm_dt = gm_data[1, 0] - gm_data[0, 0]
+    ag = gm_data[:, 1] * scaling
+
+else:
+    raise NotImplementedError(f'Unsupported suite type: {suite_type}')
 
 if custom_path:
     output_folder = custom_path
@@ -116,6 +129,7 @@ modal_analysis.settings.restrict_dof = [False, True, False, True, False, True]
 modal_analysis.run()
 
 periods = modal_analysis.results[loadcase.name].periods
+assert periods is not None
 
 # from osmg.graphics.postprocessing_3d import show_deformed_shape
 # show_deformed_shape(
@@ -130,10 +144,10 @@ periods = modal_analysis.results[loadcase.name].periods
 # time-history analysis
 #
 
-t_bar = periods[0]
+t_bar: float = periods[0]
 
 if damping == "rayleigh":
-    damping_input = {
+    damping_input: dict[str, Union[str, float, int, list[float], None]] = {
         "type": "rayleigh",
         "ratio": 0.02,
         "periods": [t_bar, t_bar / 10.00],
@@ -150,7 +164,7 @@ else:
     raise ValueError(f"Invalid damping type: {damping}")
 
 nlth = solver.THAnalysis(mdl, {loadcase.name: loadcase})
-nlth.settings.output_directory = output_folder
+nlth.output_directory = output_folder
 nlth.settings.log_file = store_info(
     f"{output_folder}/log_{direction}", [gm_filename]
 )
@@ -220,23 +234,3 @@ df.sort_index(axis=1, inplace=True)
 df.to_parquet(
     store_info(f"{output_folder}/results_{direction}.parquet", [gm_filename])
 )
-
-if plot_deformed:
-    show_deformed_shape(
-        nlth,
-        loadcase.name,
-        nlth.results[loadcase.name].n_steps_success - 1,
-        0.00,
-        extrude=True,
-        animation=False,
-        to_figure='/tmp/fig1.png',
-    )
-    show_deformed_shape(
-        nlth,
-        loadcase.name,
-        0,
-        1.00,
-        extrude=True,
-        animation=False,
-        to_figure='/tmp/fig2.png',
-    )
