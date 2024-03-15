@@ -89,11 +89,11 @@ if suite_type == 'cs':
     df_records = pd.read_csv(
         "extra/structural_analysis/results/site_hazard/"
         "required_records_and_scaling_factors_cs.csv",
-        index_col=[0, 1],
+        index_col=[0, 1, 2],
     )
 
-    rsn = int(df_records.at[(f"hz_{hazard_level}", "RSN"), str(gm_number)])
-    scaling = df_records.at[(f"hz_{hazard_level}", "SF"), str(gm_number)]
+    rsn = int(df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), str(gm_number)])
+    scaling = df_records.at[(archetype, f"hz_{hazard_level}", "SF"), str(gm_number)]
 
     dir_idx = {"x": 0, "y": 1}
     gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
@@ -108,7 +108,7 @@ if custom_path:
     output_folder = custom_path
 else:
     output_folder = (
-        f"extra/structural_analysis/results/scbf_9_ii/"
+        f"extra/structural_analysis/results/{archetype}/"
         f"{output_dir_name}/{hazard_level}/gm{gm_number}"
     )
 
