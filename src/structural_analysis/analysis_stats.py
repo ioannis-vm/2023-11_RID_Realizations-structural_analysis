@@ -71,7 +71,7 @@ if __name__ == "__main__":
     gms = [f"gm{i+1}" for i in range(ngm_cs)]
 
     keys = []
-    vals = {'status': [], 'start_time': [], 'end_time': [], 'sub': []}
+    vals: dict[str, list] = {'status': [], 'start_time': [], 'end_time': [], 'sub': []}
     for at, st, rc, hz, gm, dr in product(atypes, stors, rcs, hzs, gms, ('x', 'y')):
         key = "-".join((at, st, rc, hz, gm, dr))
         keys.append(key)
