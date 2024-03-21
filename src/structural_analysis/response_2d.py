@@ -20,6 +20,7 @@ from extra.structural_analysis.src.util import retrieve_peer_gm_data
 parser = argparse.ArgumentParser()
 parser.add_argument("--archetype")
 parser.add_argument("--suite_type")
+parser.add_argument("--pulse", default=False)
 parser.add_argument("--hazard_level")
 parser.add_argument("--gm_number")
 parser.add_argument("--analysis_dt")
@@ -32,6 +33,7 @@ parser.add_argument('--damping', default='modal')
 args = parser.parse_args()
 archetype = args.archetype
 suite_type = args.suite_type
+pulse = args.pulse
 hazard_level = args.hazard_level
 gm_number = int(args.gm_number)
 analysis_dt = float(args.analysis_dt)
@@ -43,8 +45,9 @@ damping = args.damping
 
 # # debugging
 # archetype = 'scbf_9_ii'
-# suite_type = 'cs'
-# hazard_level = '15'
+# suite_type = 'cms'
+# pulse = False
+# hazard_level = '4'
 # gm_number = 2
 # analysis_dt = 0.01
 # direction = 'y'
@@ -52,6 +55,11 @@ damping = args.damping
 # progress_bar = True
 # custom_path = '/tmp/test'
 # damping = 'modal'
+
+def split_archetype(archetype):
+    system, stories, rc = archetype.split('_')
+    stories = int(stories)
+    return system, stories, rc
 
 # load archetype building
 archetypes_module = importlib.import_module(
@@ -92,11 +100,41 @@ if suite_type == 'cs':
         index_col=[0, 1, 2],
     )
 
-    rsn = int(df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), str(gm_number)])
-    scaling = df_records.at[(archetype, f"hz_{hazard_level}", "SF"), str(gm_number)]
+    rsn = int(
+        df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), str(gm_number)]
+    )
+    scaling = df_records.at[
+        (archetype, f"hz_{hazard_level}", "SF"), str(gm_number)
+    ]
 
     dir_idx = {"x": 0, "y": 1}
-    gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
+    try:
+        gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
+    except ValueError:
+        raise ValueError(f'RSN {rsn} not available.')
+    gm_data = import_PEER(gm_filename)
+    gm_dt = gm_data[1, 0] - gm_data[0, 0]
+    ag = gm_data[:, 1] * scaling
+
+elif suite_type == 'cms':
+    df_records = pd.read_csv(
+        "extra/structural_analysis/results/site_hazard/"
+        "ground_motions_cms.csv",
+        index_col=[0, 1, 2, 3, 4],
+    )
+
+    rsn = df_records.loc[
+        (*split_archetype(archetype), int(hazard_level), pulse), 'rsn'
+    ].to_list()[gm_number]
+    scaling = df_records.loc[
+        (*split_archetype(archetype), int(hazard_level), pulse), 'scaling'
+    ].to_list()[gm_number]
+
+    dir_idx = {"x": 0, "y": 1}
+    try:
+        gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
+    except ValueError:
+        raise ValueError(f'RSN {rsn} not available.')
     gm_data = import_PEER(gm_filename)
     gm_dt = gm_data[1, 0] - gm_data[0, 0]
     ag = gm_data[:, 1] * scaling
@@ -139,15 +177,14 @@ assert periods is not None
 # mnstar = modal_analysis.modal_participation_factors(loadcase.name, 'x')[1]
 # np.cumsum(mnstar)
 
-
 #
 # time-history analysis
 #
 
-t_bar: float = periods[0]
+t_bar = periods[0]
 
 if damping == "rayleigh":
-    damping_input: dict[str, Union[str, float, int, list[float], None]] = {
+    damping_input = {
         "type": "rayleigh",
         "ratio": 0.02,
         "periods": [t_bar, t_bar / 10.00],
@@ -189,7 +226,6 @@ nlth.run(
     finish_time=0.00,  # means run the entire file
 )
 
-
 # store response quantities
 
 df = pd.DataFrame()
@@ -228,7 +264,9 @@ for lvl in range(num_levels + 1):
 
 df[f"Vb-0-{j}"] = nlth.retrieve_base_shear(loadcase.name)[:, 0]
 
-df.columns = pd.MultiIndex.from_tuples([x.split("-") for x in df.columns.to_list()])
+df.columns = pd.MultiIndex.from_tuples(
+    [x.split("-") for x in df.columns.to_list()]
+)
 df.sort_index(axis=1, inplace=True)
 
 df.to_parquet(
