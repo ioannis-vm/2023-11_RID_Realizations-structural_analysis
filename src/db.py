@@ -262,8 +262,8 @@ class DB_Handler:
             )
             c.execute(
                 '''
-                CREATE INDEX IF NOT EXISTS 
-                idx_results_id_chunk ON results_table (id, chunk_id)
+                CREATE INDEX IF NOT EXISTS
+                 idx_results_id_chunk ON results_table (id, chunk_id)
                 '''
             )
             conn.commit()

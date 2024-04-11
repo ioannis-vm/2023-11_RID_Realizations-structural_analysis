@@ -98,7 +98,8 @@ def main():
         gm_group[required_rsns[istart:iend]] = group
         with open(
             store_info(
-                f"extra/structural_analysis/results/site_hazard/rsns_unique_{group+1}_2.txt"
+                f"extra/structural_analysis/results/"
+                f"site_hazard/rsns_unique_{group+1}_2.txt"
             ),
             "w",
             encoding="utf-8",

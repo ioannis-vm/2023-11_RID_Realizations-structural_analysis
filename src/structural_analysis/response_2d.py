@@ -5,7 +5,6 @@ Run nonlinear time-history analysis to get the building's response
 from pathlib import Path
 import importlib
 import argparse
-from typing import Union
 import pickle
 import numpy as np
 import pandas as pd
@@ -277,8 +276,8 @@ def main():
         db_handler.store_data(
             identifier=record_id, dataframe=df, metadata=info, log_content=log_contents
         )
-    except:
-        # in case it fails, pickle the result variables and save them
+    except:  # noqa: E722, pylint: disable=bare-except
+        # if it fails *for any reason*, pickle the result variables and save them
         # with a unique name
         out = {
             'identifier': record_id,
