@@ -66,7 +66,7 @@ for tp, st, rc, hz in product(types, stors, rcs, hzs):
 
     num_stories = int(st)
 
-    rid_columns = {}
+    rid_columns: dict[tuple[str, str, str], list[np.ndarray]] = {}
 
     for gm in gms:
         for dr in ("x", "y"):
@@ -79,7 +79,7 @@ for tp, st, rc, hz in product(types, stors, rcs, hzs):
             # check if analysis converged witout any issues
             assert check_logs(log_path) == "finished"
             data = pd.read_parquet(response_path)
-            data.index = data["time"].to_numpy().reshape(-1)
+            data.index = pd.Index(data["time"].to_numpy().reshape(-1))
             for drop_key in ("time", "Rtime", "Subdiv", "Vb"):
                 data = data.drop(drop_key, axis=1)
             if dr == "x":
