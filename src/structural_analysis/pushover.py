@@ -4,12 +4,11 @@ Run a pushover analysis
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from osmg import solver
 from osmg.gen.query import ElmQuery
 from osmg.common import G_CONST_IMPERIAL
-from src.util import store_info
 from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
+import matplotlib.pyplot as plt
 
 
 peak_drift = 60.00  # inches
@@ -18,10 +17,7 @@ direction = 'x'
 
 mdl, loadcase = scbf_9_ii(direction)
 num_levels = len(mdl.levels) - 1
-level_heights = []
-for level in mdl.levels.values():
-    level_heights.append(level.elevation)
-level_heights = np.diff(level_heights)
+level_heights = np.diff([level.elevation for level in mdl.levels.values()])
 
 lvl_nodes = []
 base_node = list(mdl.levels[0].nodes.values())[0]
@@ -35,6 +31,7 @@ for i in range(num_levels):
 elmq = ElmQuery(mdl)
 for i in range(num_levels):
     nd = elmq.search_node_lvl(0.00, 0.00, i + 1)
+    assert nd is not None
     nd.restraint = [False, False, False, True, True, True]
 
 modal_analysis = solver.ModalAnalysis(mdl, {loadcase.name: loadcase}, num_modes=1)
@@ -53,6 +50,7 @@ modeshape = np.array(modeshape_lst)
 # pushover analysis
 for i in range(num_levels):
     nd = elmq.search_node_lvl(0.00, 0.00, i + 1)
+    assert nd is not None
     nd.restraint = [False, False, False, False, False, False]
 
 # define analysis
