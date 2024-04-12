@@ -7,7 +7,9 @@
 *.VT2
 *.DT2
 _SearchResults.csv
-/tacc/
+tacc/*.sh
+tacc/*_taskfile
+tacc/*/
 /results
 /data
 /figures
