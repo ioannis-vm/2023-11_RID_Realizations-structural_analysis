@@ -122,7 +122,7 @@ def main():
 
     elif suite_type == 'cms':
         df_records = pd.read_csv(
-            "extra/structural_analysis/results/site_hazard/" "ground_motions_cms.csv",
+            "extra/structural_analysis/results/site_hazard/ground_motions_cms.csv",
             index_col=[0, 1, 2, 3, 4],
         )
         df_records.sort_index(axis=0, inplace=True)
@@ -270,7 +270,7 @@ def main():
     # add the results to the database
 
     db_handler = DB_Handler(
-        db_path=Path('extra/structural_analysis/results/time_history.db')
+        db_path='extra/structural_analysis/results/results.sqlite'
     )
     try:
         db_handler.store_data(
