@@ -3,6 +3,7 @@ Run nonlinear time-history analysis to get the building's response
 """
 
 from pathlib import Path
+import os
 import importlib
 import argparse
 import pickle
@@ -194,7 +195,8 @@ def main():
         raise ValueError(f"Invalid damping type: {damping}")
 
     record_id = '::'.join([str(x) for x in vars(args).values()])
-    log_file = f'extra/structural_analysis/results/logs/{record_id}'
+    os.makedirs('/tmp/osmg_logs/', exist_ok=True)
+    log_file = f'/tmp/osmg_logs/{record_id}'
 
     nlth = solver.THAnalysis(mdl, {loadcase.name: loadcase})
     nlth.settings.log_file = log_file
