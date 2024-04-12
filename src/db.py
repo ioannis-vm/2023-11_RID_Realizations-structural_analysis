@@ -74,7 +74,7 @@ class DB_Handler:
             for i, chunk in enumerate(chunks):
                 c.execute(
                     '''
-                    INSERT INTO results_table '
+                    INSERT INTO results_table
                     (id, chunk_id, data, metadata, log) VALUES (?, ?, ?, ?, ?)
                     ''',
                     (
@@ -238,7 +238,7 @@ class DB_Handler:
         """
 
         conn = sqlite3.connect(self.db_path)
-        conn.execute("PRAGMA busy_timeout = 600000")  # Set timeout to 10 minutes
+        conn.execute('PRAGMA busy_timeout = 600000')  # Set timeout to 10 minutes
         return conn
 
     def _initialize_db(self) -> None:
@@ -261,10 +261,8 @@ class DB_Handler:
                '''
             )
             c.execute(
-                '''
-                CREATE INDEX IF NOT EXISTS
-                 idx_results_id_chunk ON results_table (id, chunk_id)
-                '''
+                'CREATE INDEX IF NOT EXISTS '
+                'idx_results_id_chunk ON results_table (id, chunk_id)'
             )
             conn.commit()
 
