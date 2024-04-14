@@ -329,7 +329,7 @@ def main():
                     _,
                     _,
                 ) = construct_arguments(identifier)
-                dt = '0.005'  # we reduce dt
+                dt = '0.001'  # we reduce dt
                 command = (
                     f"python3 extra/structural_analysis/src/"
                     f"structural_analysis/response_2d.py "
