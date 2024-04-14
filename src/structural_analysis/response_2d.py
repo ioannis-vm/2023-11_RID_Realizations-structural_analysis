@@ -110,7 +110,9 @@ def main():
         rsn = int(
             df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), str(gm_number)]
         )
-        scaling = df_records.at[(archetype, f"hz_{hazard_level}", "SF"), str(gm_number)]
+        scaling = df_records.at[
+            (archetype, f"hz_{hazard_level}", "SF"), str(gm_number)
+        ]
 
         dir_idx = {"x": 0, "y": 1}
         try:
@@ -131,10 +133,10 @@ def main():
 
         rsn = df_records.loc[
             (*split_archetype(archetype), int(hazard_level), pulse), 'rsn'
-        ].to_list()[gm_number]
+        ].to_list()[int(gm_number) - 1]
         scaling = df_records.loc[
             (*split_archetype(archetype), int(hazard_level), pulse), 'scaling'
-        ].to_list()[gm_number]
+        ].to_list()[int(gm_number) - 1]
 
         dir_idx = {"x": 0, "y": 1}
         try:
@@ -205,7 +207,7 @@ def main():
     nlth.settings.store_forces = False
     nlth.settings.store_reactions = True
     nlth.settings.store_release_force_defo = False
-    # nlth.settings.specific_nodes = specific_nodes
+    nlth.settings.specific_nodes = specific_nodes
 
     nlth.run(
         analysis_dt,
@@ -216,6 +218,7 @@ def main():
         damping=damping_input,
         print_progress=progress_bar,
         drift_check=0.10,  # 10% drift
+        skip_steps=10,  # only save after X converged states
         time_limit=47.95,  # hours
         dampen_out_residual=True,
         finish_time=0.00,  # means run the entire file
@@ -266,7 +269,9 @@ def main():
 
     df[f"Vb-0-{j}"] = nlth.retrieve_base_shear(loadcase.name)[:, 0]
 
-    df.columns = pd.MultiIndex.from_tuples([x.split("-") for x in df.columns.to_list()])
+    df.columns = pd.MultiIndex.from_tuples(
+        [x.split("-") for x in df.columns.to_list()]
+    )
     df.sort_index(axis=1, inplace=True)
 
     # add the results to the database
@@ -276,7 +281,10 @@ def main():
     )
     try:
         db_handler.store_data(
-            identifier=record_id, dataframe=df, metadata=info, log_content=log_contents
+            identifier=record_id,
+            dataframe=df,
+            metadata=info,
+            log_content=log_contents,
         )
     except:  # noqa: E722, pylint: disable=bare-except
         # if it fails *for any reason*, pickle the result variables and save them
