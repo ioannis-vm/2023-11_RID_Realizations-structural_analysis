@@ -213,6 +213,50 @@ class DB_Handler:
 
         return None, None
 
+    def retrieve_metadata_only_bulk(self, identifiers: list[str]) -> dict:
+        """
+        Retrieve only metadata and log content for a given list of
+        identifiers using a single database query.
+
+        Parameters
+        ----------
+        identifiers : list of str
+            A list of identifiers for the metadata and logs to be
+            retrieved.
+
+        Returns
+        -------
+        dict
+            A dictionary with identifiers as keys and tuples of
+            metadata and log content as values.
+        """
+        results = {}
+        if not identifiers:
+            return results
+
+        # Use a tuple of identifiers to use the IN clause in SQL query
+        identifiers_tuple = tuple(identifiers)
+
+        with self._get_connection() as conn:
+            c = conn.cursor()
+            # The SQL query uses the IN clause to fetch all relevant entries at once
+            query = f'''
+                SELECT id, metadata, log FROM results_table 
+                WHERE id IN ({','.join('?'*len(identifiers))}) AND chunk_id = 0
+            '''
+            c.execute(query, identifiers_tuple)
+            rows = c.fetchall()
+
+            for row in rows:
+                identifier, metadata, log = row
+                metadata = (
+                    pickle.loads(gzip.decompress(metadata)) if metadata else None
+                )
+                log_content = gzip.decompress(log).decode('utf-8') if log else None
+                results[identifier] = (metadata, log_content)
+
+        return results
+
     def delete_record(self, identifier: str) -> None:
         """
         Delete a record from the database based on identifier.
