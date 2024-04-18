@@ -5,6 +5,7 @@ Database interactions for result storage/retrieval
 """
 
 from __future__ import annotations
+import os
 import sqlite3
 import pickle
 import gzip
@@ -21,7 +22,7 @@ class DB_Handler:
         Path to the SQLite database file.
     """
 
-    def __init__(self, db_path: str = 'results.db') -> None:
+    def __init__(self, db_path: str = 'results.db', temp_dir: str = None) -> None:
         """
         Constructor for DB_Handler.
 
@@ -29,8 +30,12 @@ class DB_Handler:
         ----------
         db_path : str, optional
             Path to the database file, defaults to 'results.db'.
+        temp_dir : str, optional
+            Path to the directory for temporary SQLite files, defaults
+            to None.
         """
         self.db_path = db_path
+        self.temp_dir = temp_dir
         self._initialize_db()
 
     def store_data(
@@ -167,9 +172,7 @@ class DB_Handler:
             dataframe = pickle.loads(gzip.decompress(compressed_df_bytes))
 
             # Assume metadata and log are stored only in the first chunk
-            metadata = (
-                pickle.loads(gzip.decompress(rows[0][1])) if rows[0][1] else None
-            )
+            metadata = pickle.loads(gzip.decompress(rows[0][1])) if rows[0][1] else None
             log_content = (
                 gzip.decompress(rows[0][2]).decode('utf-8') if rows[0][2] else None
             )
@@ -177,9 +180,7 @@ class DB_Handler:
             return dataframe, metadata, log_content
         return None, None, None
 
-    def retrieve_metadata_only(
-        self, identifier: str
-    ) -> tuple[str | None, str | None]:
+    def retrieve_metadata_only(self, identifier: str) -> tuple[str | None, str | None]:
         """
         Retrieve only metadata and log content for a given identifier.
 
@@ -222,7 +223,8 @@ class DB_Handler:
         ----------
         identifiers : list of str
             A list of identifiers for the metadata and logs to be
-            retrieved.
+            retrieved. The length of the list should be less than
+            1000.
 
         Returns
         -------
@@ -240,18 +242,17 @@ class DB_Handler:
         with self._get_connection() as conn:
             c = conn.cursor()
             # The SQL query uses the IN clause to fetch all relevant entries at once
-            query = f'''
-                SELECT id, metadata, log FROM results_table 
-                WHERE id IN ({','.join('?'*len(identifiers))}) AND chunk_id = 0
-            '''
+            query = (
+                f"SELECT id, metadata, log FROM results_table "
+                f"WHERE id IN ({','.join('?'*len(identifiers))}) "
+                f"AND chunk_id = 0"
+            )
             c.execute(query, identifiers_tuple)
             rows = c.fetchall()
 
             for row in rows:
                 identifier, metadata, log = row
-                metadata = (
-                    pickle.loads(gzip.decompress(metadata)) if metadata else None
-                )
+                metadata = pickle.loads(gzip.decompress(metadata)) if metadata else None
                 log_content = gzip.decompress(log).decode('utf-8') if log else None
                 results[identifier] = (metadata, log_content)
 
@@ -280,6 +281,11 @@ class DB_Handler:
         sqlite3.Connection
             A connection object to the SQLite database.
         """
+        if self.temp_dir:
+            if not os.path.isdir(self.temp_dir):
+                raise ValueError(f'`temp_dir` {self.temp_dir} does not exist.')
+            # Set the environment variable for the temporary directory
+            os.environ['SQLITE_TMPDIR'] = self.temp_dir
 
         conn = sqlite3.connect(self.db_path)
         conn.execute('PRAGMA busy_timeout = 600000')  # Set timeout to 10 minutes
@@ -349,3 +355,68 @@ class DB_Handler:
             new_identifier = identifier
 
         return new_identifier
+
+    def merge_database(
+        self, source_db_path: str, table_name: str = 'results_table'
+    ) -> None:
+        """
+        Merge data from a source database into the current database
+        after verifying the schemas are identical.
+
+        Parameters
+        ----------
+        source_db_path : str
+            Path to the source SQLite database file to be merged.
+        table_name : str
+            The name of the table to be merged (default is 'results_table').
+
+        Example
+        -------
+        >>> db_handler1 = DB_Handler('test1.sqlite')
+        >>> db_handler2 = DB_Handler('test2.sqlite')
+        >>> db_handler1.store_data('id1', 'dataframe1', 'metadata1', 'log_content1')
+        >>> db_handler2.store_data('zzz', 'dataframe2', 'metadata2', 'log_content2')
+        >>> db_handler1.list_identifiers()
+        >>> db_handler2.list_identifiers()
+        >>> db_handler1.merge_database('test2.sqlite')
+
+        """
+        # First, compare the schemas of the specified tables
+        this_schema = self._get_table_schema()
+        other = DB_Handler(source_db_path)
+        other_schema = other._get_table_schema()
+        # Compare schemas
+        if this_schema != other_schema:
+            raise ValueError("Schema mismatch")
+
+        with self._get_connection() as conn:
+            conn.execute('ATTACH DATABASE ? AS source_db', (source_db_path,))
+            conn.execute(
+                f'INSERT INTO {table_name} (id, chunk_id, data, metadata, log)'
+                f'SELECT id, chunk_id, data, metadata, log FROM source_db.{table_name}'
+                f'WHERE NOT EXISTS ('
+                f'  SELECT 1 FROM {table_name} WHERE id = source_db.{table_name}.id '
+                f'  AND chunk_id = source_db.{table_name}.chunk_id'
+                f')'
+            )
+            conn.commit()
+            conn.execute('DETACH DATABASE source_db')
+            conn.commit()
+
+    def _get_table_schema(self, table_name: str = 'results_table') -> list:
+        """
+        Retrieve the schema of a specified table.
+
+        Parameters
+        ----------
+        table_name : str
+            The name of the table to retrieve the schema for.
+
+        Returns
+        -------
+        list
+            A list of tuples describing the schema (column name, type, etc.)
+        """
+        with self._get_connection() as conn:
+            schema = conn.execute(f'PRAGMA table_info({table_name})').fetchall()
+            return [(column[1], column[2]) for column in schema]
