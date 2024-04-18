@@ -277,7 +277,7 @@ def main():
     # add the results to the database
 
     db_handler = DB_Handler(
-        db_path='extra/structural_analysis/results/results.sqlite'
+        db_path='extra/structural_analysis/results/results_2.sqlite'
     )
     try:
         db_handler.store_data(
