@@ -33,19 +33,15 @@ def main():
     # set parameters
     #
 
-    date_prefix = '20240411'
+    date_prefix = '20240417'
 
     #
     # retrieve study variables
     #
 
     nhz = int(read_study_param('extra/structural_analysis/data/study_vars/m'))
-    ngm_cs = int(
-        read_study_param('extra/structural_analysis/data/study_vars/ngm_cs')
-    )
-    ngm_cms = int(
-        read_study_param('extra/structural_analysis/data/study_vars/ngm_cms')
-    )
+    ngm_cs = int(read_study_param('extra/structural_analysis/data/study_vars/ngm_cs'))
+    ngm_cms = int(read_study_param('extra/structural_analysis/data/study_vars/ngm_cms'))
     ngm_pulse = int(
         float(read_study_param('extra/structural_analysis/data/study_vars/ngm_cms'))
         / 4.00
@@ -72,10 +68,16 @@ def main():
     #
 
     log.info('Obtain existing runs')
-    db_handler = DB_Handler(
-        db_path='extra/structural_analysis/results/results.sqlite'
+    db_handler = DB_Handler(db_path='extra/structural_analysis/results/results.sqlite')
+    db_handler2 = DB_Handler(
+        db_path='extra/structural_analysis/results/results_1.sqlite'
     )
-    identifiers = set(db_handler.list_identifiers())
+    identifiers = set(db_handler.list_identifiers() + db_handler2.list_identifiers())
+    identifiers_reduced_args = []
+    for identifier in identifiers:
+        x = identifier.split('::')
+        identifiers_reduced_args.append('::'.join([x[0], x[1], x[2], x[3], x[4], x[6]]))
+    identifiers_reduced_args = set(identifiers_reduced_args)
 
     existing = []
     required = []
@@ -108,6 +110,10 @@ def main():
             ]
         )
 
+    def reduced(identifier):
+        x = identifier.split('::')
+        return '::'.join([x[0], x[1], x[2], x[3], x[4], x[6]])
+
     def construct_arguments(identifier):
         return identifier.split('::')
 
@@ -129,7 +135,7 @@ def main():
                     identifier = construct_identifier(
                         arch, suite, pulse, hz, gm, '0.01', dr, 'False', 'modal'
                     )
-                    if identifier in identifiers:
+                    if reduced(identifier) in identifiers_reduced_args:
                         existing.append(identifier)
                     else:
                         required.append(identifier)
@@ -248,16 +254,16 @@ def main():
     sns.ecdfplot(ratios)
     plt.show()
 
-    # We'll use 40.
+    # We'll use 80.
 
     #
     # Split identifires to groups to assign to jobs
     #
-    real_duration_estimate = duration_series * 2.00 * 40.00
+    real_duration_estimate = duration_series * 2.00 * 80.00
 
     num_nodes = 5
     num_cores = 56 * num_nodes
-    num_hours = 24.00
+    num_hours = 48.00
     max_runtime = num_hours * 60.00 * 60.00 * num_cores
 
     groups = []
@@ -329,7 +335,7 @@ def main():
                     _,
                     _,
                 ) = construct_arguments(identifier)
-                dt = '0.001'  # we reduce dt
+                dt = '0.001'
                 command = (
                     f"python3 extra/structural_analysis/src/"
                     f"structural_analysis/response_2d.py "
