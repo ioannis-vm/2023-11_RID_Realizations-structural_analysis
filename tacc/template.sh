@@ -6,8 +6,10 @@
 #SBATCH -p %partition%                  # queue (partition)
 #SBATCH -t %time%                       # run time (hh:mm:ss)
 #SBATCH -A DesignSafe-HPC4PBEE          # Allocation name to charge job against
+#SBATCH --mail-type=all
+#SBATCH --mail-user=ioannis_vm@berkeley.edu
 
-source $(HOME)/env_setup.sh
+source $HOME/env_setup.sh
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 export LAUNCHER_WORKDIR=/scratch1/07506/usr83847/2023-11_RID_Realizations/
 export OMP_NUM_THREADS=1
