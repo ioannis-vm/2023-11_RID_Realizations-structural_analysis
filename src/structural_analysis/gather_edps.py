@@ -1,48 +1,144 @@
 """
-Determine residual drifts
+Extract EDPs from sqlite database and store them in parquet files
 """
 
-from itertools import product
-import pandas as pd
 from tqdm import tqdm
-from src.util import store_info
-from extra.structural_analysis.src.util import read_study_param
+import numpy as np
+import pandas as pd
+from extra.structural_analysis.src.db import DB_Handler
+
+
+def parse_id(identifier):
+    parts = identifier.split('::')
+    (
+        archetype,
+        suite_type,
+        pulse,
+        hazard_level,
+        ground_motion,
+        dt,
+        direction,
+        progress_bar,
+        damping,
+    ) = parts
+    system, stories, rc = archetype.split('_')
+    if pulse == 'True':
+        suite_type = 'cs_pulse'
+    if progress_bar == 'True':
+        pbar = True
+    else:
+        pbar = False
+    return (
+        system,
+        stories,
+        rc,
+        suite_type,
+        hazard_level,
+        ground_motion,
+        dt,
+        direction,
+        pbar,
+        damping,
+    )
 
 
 def main():
-    types = ("scbf",)
-    stors = ("9",)
-    rcs = ("ii",)
+    db_handler = DB_Handler(db_path='extra/structural_analysis/results/edps.sqlite')
+    identifiers = db_handler.list_identifiers()
 
-    nhz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
-    hzs = [f"{i+1}" for i in range(nhz)]
+    # # Remove repeated results
+    # repeats = {}
+    # for identifier in tqdm(identifiers):
+    #     if identifier[-2] == '_':
+    #         if identifier[:-2] not in repeats:
+    #             repeats[identifier[:-2]] = [identifier]
+    #         else:
+    #             repeats[identifier[:-2]].append(identifier)
 
-    keys = []
-    dfs = []
+    # for rep in tqdm(repeats):
+    #     df, _, _ = db_handler.retrieve_data(rep)
+    #     for rrep in repeats[rep]:
+    #         ddf, _, _ = db_handler.retrieve_data(rep)
+    #         if np.all(ddf == df):
+    #             db_handler.delete_record(rrep)
+    # # Note: Check for repeated results once again.
 
-    total = len(types) * len(stors) * len(rcs) * len(hzs)
-    pbar = tqdm(total=total, unit="item")
-    for tp, st, rc, hz in product(types, stors, rcs, hzs):
-        pbar.update(1)
+    # dts = {}
+    # for identifier in tqdm(identifiers):
+    #     (
+    #         archetype,
+    #         suite_type,
+    #         hazard_level,
+    #         ground_motion,
+    #         dt,
+    #         direction,
+    #         progress_bar,
+    #         damping,
+    #     ) = parse_id(identifier)
+    #     if dt not in dts:
+    #         dts[dt] = 1
+    #     else:
+    #         dts[dt] += 1
 
-        archetype = f"{tp}_{st}_{rc}"
+    dfs = {}
+    for identifier in tqdm(identifiers):
+        (
+            system,
+            stories,
+            risk_category,
+            suite_type,
+            hazard_level,
+            ground_motion,
+            _,
+            direction,
+            _,
+            _,
+        ) = parse_id(identifier)
+        df, _, _ = db_handler.retrieve_data(identifier)
+        key = (
+            system,
+            stories,
+            risk_category,
+            hazard_level,
+            ground_motion,
+            direction,
+        )
+        if suite_type in dfs:
+            dfs[suite_type][key] = df
+        else:
+            dfs[suite_type] = {key: df}
 
-        summary_df_path_updated = (
-            f"extra/structural_analysis/results/"
-            f"{archetype}/edp/{hz}/response_rid.parquet"
+    merged_dfs = {}
+    for suite_type in dfs:
+        if suite_type in merged_dfs:
+            continue
+        merged_dfs[suite_type] = pd.concat(
+            dfs[suite_type].values(), keys=dfs[suite_type].keys()
+        )
+        merged_dfs[suite_type].index.names = [
+            'system',
+            'stories',
+            'rc',
+            'hz',
+            'gm',
+            'dir',
+            'edp',
+            'loc',
+            'dir_num',
+        ]
+        merged_dfs[suite_type].index = merged_dfs[suite_type].index.droplevel(
+            'dir_num'
+        )
+        merged_dfs[suite_type].index = merged_dfs[suite_type].index.reorder_levels(
+            ['system', 'stories', 'rc', 'hz', 'edp', 'loc', 'dir', 'gm']
+        )
+    for suite_type in dfs:
+        merged_dfs[suite_type] = pd.DataFrame(
+            merged_dfs[suite_type], columns=['value']
         )
 
-        df = pd.read_parquet(summary_df_path_updated)
-        keys.append((tp, st, rc, hz))
-        dfs.append(df)
-
-    pbar.close()
-
-    df = pd.concat(dfs, axis=1, keys=keys)
-    df.index.names = ('gm',)
-    df.columns.names = ('system', 'stories', 'rc', 'hz', 'edp', 'loc', 'dir')
-    df = pd.DataFrame(df.T.stack(), columns=['value'])
-    df.to_parquet(store_info('extra/structural_analysis/results/edp.parquet'))
+    for suite_type in dfs:
+        merged_dfs[suite_type].to_parquet(f'data/edp_extended_{suite_type}.parquet')
 
 
 if __name__ == '__main__':
