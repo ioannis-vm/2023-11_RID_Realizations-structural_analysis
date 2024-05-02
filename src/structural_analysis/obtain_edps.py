@@ -63,6 +63,7 @@ def main():
     processed_identifiers = set(result_db_handler.list_identifiers())
 
     issue = []
+    already_processed = []
 
     for path in database_paths:
         db_handler = DB_Handler(db_path=path)
@@ -70,6 +71,7 @@ def main():
 
         for identifier in tqdm(identifiers):
             if identifier in processed_identifiers:
+                already_processed.append(identifier)
                 continue
             dataframe, metadata, log_content = db_handler.retrieve_data(identifier)
             status = status_from_log(log_content)
@@ -78,6 +80,7 @@ def main():
                 result_db_handler.store_data(identifier, edps, '', '')
             else:
                 issue.append((status, identifier))
+                db_handler.delete_record(identifier)
     with open('extra/structural_analysis/results/edps_issue.pickle', 'wb') as f:
         pickle.dump(issue, f)
 
