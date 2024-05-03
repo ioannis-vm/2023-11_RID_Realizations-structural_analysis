@@ -42,6 +42,8 @@ def main():
     #     "--progress_bar",
     #     '--damping',
     #     "modal",
+    #     '--group_id',
+    #     '1'
     # ]
 
     parser = argparse.ArgumentParser()
@@ -54,6 +56,7 @@ def main():
     parser.add_argument("--direction")
     parser.add_argument("--progress_bar", default=False, action='store_true')
     parser.add_argument('--damping', default='modal')
+    parser.add_argument("--group_id")
 
     args = parser.parse_args()
     archetype = args.archetype
@@ -65,6 +68,7 @@ def main():
     direction = args.direction
     progress_bar = bool(args.progress_bar)
     damping = args.damping
+    group_id = int(args.group_id)
 
     def split_archetype(archetype):
         system, stories, rc = archetype.split('_')
@@ -110,9 +114,7 @@ def main():
         rsn = int(
             df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), str(gm_number)]
         )
-        scaling = df_records.at[
-            (archetype, f"hz_{hazard_level}", "SF"), str(gm_number)
-        ]
+        scaling = df_records.at[(archetype, f"hz_{hazard_level}", "SF"), str(gm_number)]
 
         dir_idx = {"x": 0, "y": 1}
         try:
@@ -196,9 +198,9 @@ def main():
     else:
         raise ValueError(f"Invalid damping type: {damping}")
 
-    record_id = '::'.join([str(x) for x in vars(args).values()])
+    identifier = '::'.join([str(x) for x in vars(args).values()])
     os.makedirs('/tmp/osmg_logs/', exist_ok=True)
-    log_file = f'/tmp/osmg_logs/{record_id}'
+    log_file = f'/tmp/osmg_logs/{identifier}'
 
     nlth = solver.THAnalysis(mdl, {loadcase.name: loadcase})
     nlth.settings.log_file = log_file
@@ -209,7 +211,7 @@ def main():
     nlth.settings.store_release_force_defo = False
     nlth.settings.specific_nodes = specific_nodes
 
-    nlth.run(
+    metadata = nlth.run(
         analysis_dt,
         ag,
         None,
@@ -218,11 +220,17 @@ def main():
         damping=damping_input,
         print_progress=progress_bar,
         drift_check=0.10,  # 10% drift
-        skip_steps=10,  # only save after X converged states
+        # skip_steps=10,  # only save after X converged states
         time_limit=47.95,  # hours
         dampen_out_residual=True,
         finish_time=0.00,  # means run the entire file
     )
+    success = metadata['analysis_finished_successfully']
+
+    if success:
+        sub_path = ''
+    else:
+        sub_path = 'failed/'
 
     # get log contents
     with open(log_file, 'r') as file:
@@ -269,19 +277,19 @@ def main():
 
     df[f"Vb-0-{j}"] = nlth.retrieve_base_shear(loadcase.name)[:, 0]
 
-    df.columns = pd.MultiIndex.from_tuples(
-        [x.split("-") for x in df.columns.to_list()]
-    )
+    df.columns = pd.MultiIndex.from_tuples([x.split("-") for x in df.columns.to_list()])
     df.sort_index(axis=1, inplace=True)
 
     # add the results to the database
 
+    if not os.path.isdir(f'extra/structural_analysis/results/{sub_path}'):
+        os.makedirs(f'extra/structural_analysis/results/{sub_path}')
     db_handler = DB_Handler(
-        db_path='extra/structural_analysis/results/results_2.sqlite'
+        db_path=f'extra/structural_analysis/results/{sub_path}results_{group_id}.sqlite'
     )
     try:
         db_handler.store_data(
-            identifier=record_id,
+            identifier=identifier,
             dataframe=df,
             metadata=info,
             log_content=log_contents,
@@ -290,12 +298,14 @@ def main():
         # if it fails *for any reason*, pickle the result variables and save them
         # with a unique name
         out = {
-            'identifier': record_id,
+            'identifier': identifier,
             'dataframe': df,
             'metadata': info,
             'log_content': log_contents,
         }
-        with open(Path(f'extra/structural_analysis/results/{record_id}'), 'wb') as f:
+        with open(
+            Path(f'extra/structural_analysis/results/{sub_path}{identifier}'), 'wb'
+        ) as f:
             pickle.dump(out, f)
 
 
