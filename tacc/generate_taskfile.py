@@ -33,7 +33,7 @@ def main():
     # set parameters
     #
 
-    date_prefix = '20240417'
+    date_prefix = '20240502'
 
     #
     # retrieve study variables
@@ -69,15 +69,7 @@ def main():
 
     log.info('Obtain existing runs')
     db_handler = DB_Handler(db_path='extra/structural_analysis/results/results.sqlite')
-    db_handler2 = DB_Handler(
-        db_path='extra/structural_analysis/results/results_1.sqlite'
-    )
-    identifiers = set(db_handler.list_identifiers() + db_handler2.list_identifiers())
-    identifiers_reduced_args = []
-    for identifier in identifiers:
-        x = identifier.split('::')
-        identifiers_reduced_args.append('::'.join([x[0], x[1], x[2], x[3], x[4], x[6]]))
-    identifiers_reduced_args = set(identifiers_reduced_args)
+    existing_identifiers = set(db_handler.list_identifiers())
 
     existing = []
     required = []
@@ -110,10 +102,6 @@ def main():
             ]
         )
 
-    def reduced(identifier):
-        x = identifier.split('::')
-        return '::'.join([x[0], x[1], x[2], x[3], x[4], x[6]])
-
     def construct_arguments(identifier):
         return identifier.split('::')
 
@@ -133,12 +121,23 @@ def main():
                         gms = ground_motions_cms
                 for hz, gm, dr in product(hazard_levels, gms, directions):
                     identifier = construct_identifier(
-                        arch, suite, pulse, hz, gm, '0.01', dr, 'False', 'modal'
+                        arch, suite, pulse, hz, gm, '0.001', dr, 'False', 'modal'
                     )
-                    if reduced(identifier) in identifiers_reduced_args:
+                    if identifier in existing_identifiers:
                         existing.append(identifier)
                     else:
                         required.append(identifier)
+
+
+    other = []
+    check_set = set(existing + required)
+    for identifier in tqdm(existing_identifiers):
+        if identifier not in check_set:
+            other.append(identifier)
+    for identifier in other:
+        assert identifier[-2] == '_'
+    # All of these are duplicate results. Will clean up.
+
 
     #
     # get ground motion duration
@@ -261,8 +260,8 @@ def main():
     #
     real_duration_estimate = duration_series * 2.00 * 80.00
 
-    num_nodes = 5
-    num_cores = 56 * num_nodes
+    num_nodes = 50
+    num_cores = 48 * num_nodes
     num_hours = 48.00
     max_runtime = num_hours * 60.00 * 60.00 * num_cores
 
@@ -337,7 +336,7 @@ def main():
                 ) = construct_arguments(identifier)
                 dt = '0.001'
                 command = (
-                    f"python3 extra/structural_analysis/src/"
+                    f"python extra/structural_analysis/src/"
                     f"structural_analysis/response_2d.py "
                     f"'--archetype' '{archetype}' "
                     f"'--suite_type' '{suite}' "
@@ -349,6 +348,7 @@ def main():
                     f"'--gm_number' '{ground_motion}' "
                     f"'--analysis_dt' '{dt}' "
                     f"'--direction' '{direction}' "
+                    f"'--group_id' '{i_group}' "
                     f"\n"
                 )
                 file.write(command)
@@ -356,7 +356,7 @@ def main():
             f'{date_prefix}_nlth_group_{i_group}',
             f'{num_nodes}',
             f'{num_cores}',
-            'normal',
+            'skx',
             f'{int(num_hours)}:00:00',
         )
 
