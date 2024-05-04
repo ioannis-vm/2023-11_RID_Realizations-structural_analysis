@@ -310,10 +310,6 @@ class DB_Handler:
                 )
                '''
             )
-            c.execute(
-                'CREATE INDEX IF NOT EXISTS '
-                'idx_results_id_chunk ON results_table (id, chunk_id)'
-            )
             conn.commit()
 
     def _generate_new_identifier(self, identifier: str) -> str:
