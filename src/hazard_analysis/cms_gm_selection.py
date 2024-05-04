@@ -66,7 +66,7 @@ def get_periods(df: pd.DataFrame) -> np.ndarray:
     # than 10s, but we don't use those since our target spectra only go up
     # to 10s.
     periods = df.columns[
-        df.columns.get_loc("T0.010S") : df.columns.get_loc("T10.000S") + 1
+        df.columns.get_loc("T0.010S") : df.columns.get_loc("T10.000S") + 1  # type: ignore
     ].to_numpy()
     periods = np.array([float(p.replace('T', '').replace('S', '')) for p in periods])
     return periods
@@ -123,8 +123,8 @@ def get_records(filtered_record_df, target_sa, num, periods, limits):
     # the name
     df_factors['Earthquake Name'] = (
         df_factors['Earthquake Name']
-        .str.replace('-\d+', '', regex=True)
-        .replace('\(\d+\)', '', regex=True)
+        .str.replace(r'-\d+', '', regex=True)
+        .replace(r'\(\d+\)', '', regex=True)
     )
 
     # only keep one record from each event
