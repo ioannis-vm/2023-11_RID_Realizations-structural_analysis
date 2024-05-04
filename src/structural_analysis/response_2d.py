@@ -220,7 +220,7 @@ def main():
         damping=damping_input,
         print_progress=progress_bar,
         drift_check=0.10,  # 10% drift
-        # skip_steps=10,  # only save after X converged states
+        skip_steps=10,  # only save after X converged states
         time_limit=47.95,  # hours
         dampen_out_residual=True,
         finish_time=0.00,  # means run the entire file
@@ -280,6 +280,14 @@ def main():
     df.columns = pd.MultiIndex.from_tuples([x.split("-") for x in df.columns.to_list()])
     df.sort_index(axis=1, inplace=True)
 
+    # interpoate to a time step of 0.01 (to save space)
+    # and set index to `time`
+    df = df.set_index('time')
+    step = 0.01
+    new_index = np.arange(df.index.min(), df.index.max() + step, step)
+    df_resampled = df.reindex(new_index).interpolate(method='index')
+    df_resampled['Subdiv'] = df_resampled['Subdiv'].astype('int')
+
     # add the results to the database
 
     if not os.path.isdir(f'extra/structural_analysis/results/{sub_path}'):
@@ -290,7 +298,7 @@ def main():
     try:
         db_handler.store_data(
             identifier=identifier,
-            dataframe=df,
+            dataframe=df_resampled,
             metadata=info,
             log_content=log_contents,
         )
@@ -299,7 +307,7 @@ def main():
         # with a unique name
         out = {
             'identifier': identifier,
-            'dataframe': df,
+            'dataframe': df_resampled,
             'metadata': info,
             'log_content': log_contents,
         }
