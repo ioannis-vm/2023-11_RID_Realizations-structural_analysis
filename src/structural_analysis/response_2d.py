@@ -211,6 +211,11 @@ def main():
     nlth.settings.store_release_force_defo = False
     nlth.settings.specific_nodes = specific_nodes
 
+    # we want to store results at a resolution of 0.01s
+    # to avoid running out of memory
+    assert analysis_dt <= 0.01
+    skip_steps = int(0.01 / analysis_dt)
+
     metadata = nlth.run(
         analysis_dt,
         ag,
@@ -220,7 +225,7 @@ def main():
         damping=damping_input,
         print_progress=progress_bar,
         drift_check=0.10,  # 10% drift
-        skip_steps=10,  # only save after X converged states
+        skip_steps=skip_steps,  # only save after X converged states
         time_limit=47.95,  # hours
         dampen_out_residual=True,
         finish_time=0.00,  # means run the entire file
