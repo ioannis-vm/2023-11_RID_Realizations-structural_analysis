@@ -5,6 +5,7 @@ Database interactions for result storage/retrieval
 """
 
 from __future__ import annotations
+from typing import Any
 import os
 import sqlite3
 import pickle
@@ -22,7 +23,9 @@ class DB_Handler:
         Path to the SQLite database file.
     """
 
-    def __init__(self, db_path: str = 'results.db', temp_dir: str = None) -> None:
+    def __init__(
+        self, db_path: str = 'results.db', temp_dir: str | None = None
+    ) -> None:
         """
         Constructor for DB_Handler.
 
@@ -232,7 +235,7 @@ class DB_Handler:
             A dictionary with identifiers as keys and tuples of
             metadata and log content as values.
         """
-        results = {}
+        results: dict[str, tuple[Any, str | None]] = {}
         if not identifiers:
             return results
 
@@ -351,68 +354,3 @@ class DB_Handler:
             new_identifier = identifier
 
         return new_identifier
-
-    def merge_database(
-        self, source_db_path: str, table_name: str = 'results_table'
-    ) -> None:
-        """
-        Merge data from a source database into the current database
-        after verifying the schemas are identical.
-
-        Parameters
-        ----------
-        source_db_path : str
-            Path to the source SQLite database file to be merged.
-        table_name : str
-            The name of the table to be merged (default is 'results_table').
-
-        Example
-        -------
-        >>> db_handler1 = DB_Handler('test1.sqlite')
-        >>> db_handler2 = DB_Handler('test2.sqlite')
-        >>> db_handler1.store_data('id1', 'dataframe1', 'metadata1', 'log_content1')
-        >>> db_handler2.store_data('zzz', 'dataframe2', 'metadata2', 'log_content2')
-        >>> db_handler1.list_identifiers()
-        >>> db_handler2.list_identifiers()
-        >>> db_handler1.merge_database('test2.sqlite')
-
-        """
-        # First, compare the schemas of the specified tables
-        this_schema = self._get_table_schema()
-        other = DB_Handler(source_db_path)
-        other_schema = other._get_table_schema()
-        # Compare schemas
-        if this_schema != other_schema:
-            raise ValueError("Schema mismatch")
-
-        with self._get_connection() as conn:
-            conn.execute('ATTACH DATABASE ? AS source_db', (source_db_path,))
-            conn.execute(
-                f'INSERT INTO {table_name} (id, chunk_id, data, metadata, log)'
-                f'SELECT id, chunk_id, data, metadata, log FROM source_db.{table_name}'
-                f'WHERE NOT EXISTS ('
-                f'  SELECT 1 FROM {table_name} WHERE id = source_db.{table_name}.id '
-                f'  AND chunk_id = source_db.{table_name}.chunk_id'
-                f')'
-            )
-            conn.commit()
-            conn.execute('DETACH DATABASE source_db')
-            conn.commit()
-
-    def _get_table_schema(self, table_name: str = 'results_table') -> list:
-        """
-        Retrieve the schema of a specified table.
-
-        Parameters
-        ----------
-        table_name : str
-            The name of the table to retrieve the schema for.
-
-        Returns
-        -------
-        list
-            A list of tuples describing the schema (column name, type, etc.)
-        """
-        with self._get_connection() as conn:
-            schema = conn.execute(f'PRAGMA table_info({table_name})').fetchall()
-            return [(column[1], column[2]) for column in schema]
