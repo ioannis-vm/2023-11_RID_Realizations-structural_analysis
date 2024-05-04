@@ -3,7 +3,6 @@ Extract EDPs from sqlite database and store them in parquet files
 """
 
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 from extra.structural_analysis.src.db import DB_Handler
 

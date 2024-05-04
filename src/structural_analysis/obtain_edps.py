@@ -84,5 +84,6 @@ def main():
     with open('extra/structural_analysis/results/edps_issue.pickle', 'wb') as f:
         pickle.dump(issue, f)
 
+
 if __name__ == '__main__':
     main()

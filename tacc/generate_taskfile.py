@@ -128,7 +128,6 @@ def main():
                     else:
                         required.append(identifier)
 
-
     other = []
     check_set = set(existing + required)
     for identifier in tqdm(existing_identifiers):
@@ -137,7 +136,6 @@ def main():
     for identifier in other:
         assert identifier[-2] == '_'
     # All of these are duplicate results. Will clean up.
-
 
     #
     # get ground motion duration
