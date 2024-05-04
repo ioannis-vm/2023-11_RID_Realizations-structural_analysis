@@ -21,7 +21,7 @@ def main() -> None:
     vs30 = float(read_study_param("extra/structural_analysis/data/study_vars/vs30"))
 
     dfs_arch = []
-    conditioning_periods = pd.Series(np.empty(len(cases)), index=cases)
+    conditioning_periods: pd.Series = pd.Series(np.empty(len(cases)), index=cases)
 
     for arch in cases:
         t_bar = float(
