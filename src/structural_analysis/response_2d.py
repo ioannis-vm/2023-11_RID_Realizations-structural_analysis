@@ -22,7 +22,6 @@ def main():
     # set up argument parser #
     # ~~~~~~~~~~~~~~~~~~~~~~ #
 
-    # # debugging
     # import sys
     # sys.argv = [
     #     "python",
@@ -30,7 +29,6 @@ def main():
     #     "scbf_9_ii",
     #     "--suite_type",
     #     "cms",
-    #     "--pulse",
     #     "--hazard_level",
     #     "4",
     #     "--gm_number",
@@ -39,9 +37,10 @@ def main():
     #     "0.01",
     #     "--direction",
     #     "y",
-    #     "--progress_bar",
     #     '--damping',
     #     "modal",
+    #     '--scaling',
+    #     "1.00",
     #     '--group_id',
     #     '1'
     # ]
@@ -49,25 +48,23 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--archetype")
     parser.add_argument("--suite_type")
-    parser.add_argument("--pulse", default=False, action='store_true')
     parser.add_argument("--hazard_level")
     parser.add_argument("--gm_number")
     parser.add_argument("--analysis_dt")
     parser.add_argument("--direction")
-    parser.add_argument("--progress_bar", default=False, action='store_true')
-    parser.add_argument('--damping', default='modal')
+    parser.add_argument('--damping')
+    parser.add_argument('--scaling')
     parser.add_argument("--group_id")
 
     args = parser.parse_args()
     archetype = args.archetype
     suite_type = args.suite_type
-    pulse = args.pulse
     hazard_level = args.hazard_level
     gm_number = int(args.gm_number)
     analysis_dt = float(args.analysis_dt)
     direction = args.direction
-    progress_bar = bool(args.progress_bar)
     damping = args.damping
+    additional_scaling = float(args.scaling)
     group_id = int(args.group_id)
 
     def split_archetype(archetype):
@@ -125,13 +122,18 @@ def main():
         gm_dt = gm_data[1, 0] - gm_data[0, 0]
         ag = gm_data[:, 1] * scaling
 
-    elif suite_type == 'cms':
+    elif suite_type in {'cms', 'cms_pulse'}:
         df_records = pd.read_csv(
             "extra/structural_analysis/results/site_hazard/ground_motions_cms.csv",
             index_col=[0, 1, 2, 3, 4],
         )
         df_records.sort_index(axis=0, inplace=True)
         df_records.sort_index(axis=1, inplace=True)
+
+        if 'pulse' in suite_type:
+            pulse = True
+        else:
+            pulse = False
 
         rsn = df_records.loc[
             (*split_archetype(archetype), int(hazard_level), pulse), 'rsn'
@@ -151,6 +153,8 @@ def main():
 
     else:
         raise NotImplementedError(f'Unsupported suite type: {suite_type}')
+
+    ag *= additional_scaling
 
     #
     # modal analysis
@@ -198,7 +202,21 @@ def main():
     else:
         raise ValueError(f"Invalid damping type: {damping}")
 
-    identifier = '::'.join([str(x) for x in vars(args).values()])
+    identifier = '::'.join(
+        [
+            str(x)
+            for x in [
+                archetype,
+                suite_type,
+                hazard_level,
+                gm_number,
+                analysis_dt,
+                direction,
+                damping,
+                additional_scaling,
+            ]
+        ]
+    )
     os.makedirs('/tmp/osmg_logs/', exist_ok=True)
     log_file = f'/tmp/osmg_logs/{identifier}'
 
@@ -223,25 +241,30 @@ def main():
         None,
         gm_dt,
         damping=damping_input,
-        print_progress=progress_bar,
+        print_progress=False,
         drift_check=0.10,  # 10% drift
         skip_steps=skip_steps,  # only save after X converged states
         time_limit=47.95,  # hours
         dampen_out_residual=True,
         finish_time=0.00,  # means run the entire file
     )
-    success = metadata['analysis_finished_successfully']
-
-    if success:
-        sub_path = ''
-    else:
-        sub_path = 'failed/'
 
     # get log contents
     with open(log_file, 'r') as file:
         log_contents = file.read()
     # get session metadata
 
+    success = metadata['analysis_finished_successfully']
+
+    # Termination due to drift is a successful analysis.
+    # (osmg marks them as failed)
+    if 'due to excessive drift' in log_contents:
+        success = True
+
+    if success:
+        sub_path = ''
+    else:
+        sub_path = 'failed/'
     info = store_info(input_data_paths=[gm_filename])
 
     # store response quantities

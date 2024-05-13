@@ -3,16 +3,14 @@ Generate a taskfile to run the analysese on TACC
 """
 
 from itertools import product
+from glob import glob
 import sys
 import logging
 import re
 from datetime import datetime
-from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from osmg.ground_motion_utils import import_PEER
 from extra.structural_analysis.src.util import read_study_param
 from extra.structural_analysis.src.db import DB_Handler
@@ -33,7 +31,7 @@ def main():
     # set parameters
     #
 
-    date_prefix = '20240502'
+    date_prefix = '20240505'
 
     #
     # retrieve study variables
@@ -60,7 +58,7 @@ def main():
     codes = ("smrf", "scbf", "brbf")
     stories = ("3", "6", "9")
     rcs = ("ii", "iv")
-    suites = ('cms', 'cs')
+    suites = ('cms', 'cms_pulse', 'cs')
     cases = [f"{c}_{s}_{r}" for c in codes for s in stories for r in rcs]
 
     #
@@ -68,8 +66,12 @@ def main():
     #
 
     log.info('Obtain existing runs')
-    db_handler = DB_Handler(db_path='extra/structural_analysis/results/results.sqlite')
-    existing_identifiers = set(db_handler.list_identifiers())
+    existing_paths = glob('extra/structural_analysis/results/*.sqlite')
+    existing_identifiers = []
+    for path in existing_paths:
+        db_handler = DB_Handler(db_path=path)
+        existing_identifiers.extend(db_handler.list_identifiers())
+    existing_identifiers = set(existing_identifiers)
 
     existing = []
     required = []
@@ -79,26 +81,24 @@ def main():
 
     def construct_identifier(
         archetype,
-        suite,
-        pulse,
+        suite_type,
         hazard_level,
-        ground_motion,
-        dt,
+        gm_number,
+        analysis_dt,
         direction,
-        progress,
         damping,
+        additional_scaling,
     ):
         return '::'.join(
             [
                 archetype,
-                suite,
-                pulse,
+                suite_type,
                 hazard_level,
-                ground_motion,
-                dt,
+                gm_number,
+                analysis_dt,
                 direction,
-                progress,
                 damping,
+                additional_scaling,
             ]
         )
 
@@ -107,35 +107,21 @@ def main():
 
     for arch in cases:
         for suite in suites:
-            if suite == 'cms':
-                pulse_cases = ['True', 'False']
+            if suite == 'cs':
+                gms = ground_motions
             else:
-                pulse_cases = ['False']
-            for pulse in pulse_cases:
-                if suite == 'cs':
-                    gms = ground_motions
+                if 'pulse' in suite:
+                    gms = ground_motions_pulse
                 else:
-                    if pulse == 'True':
-                        gms = ground_motions_pulse
-                    else:
-                        gms = ground_motions_cms
-                for hz, gm, dr in product(hazard_levels, gms, directions):
-                    identifier = construct_identifier(
-                        arch, suite, pulse, hz, gm, '0.001', dr, 'False', 'modal'
-                    )
-                    if identifier in existing_identifiers:
-                        existing.append(identifier)
-                    else:
-                        required.append(identifier)
-
-    other = []
-    check_set = set(existing + required)
-    for identifier in tqdm(existing_identifiers):
-        if identifier not in check_set:
-            other.append(identifier)
-    for identifier in other:
-        assert identifier[-2] == '_'
-    # All of these are duplicate results. Will clean up.
+                    gms = ground_motions_cms
+            for hz, gm, dr in product(hazard_levels, gms, directions):
+                identifier = construct_identifier(
+                    arch, suite, hz, gm, '0.001', dr, 'modal', '1.0'
+                )
+                if identifier in existing_identifiers:
+                    existing.append(identifier)
+                else:
+                    required.append(identifier)
 
     #
     # get ground motion duration
@@ -167,7 +153,6 @@ def main():
         (
             archetype,
             suite,
-            pulse,
             hazard_level,
             ground_motion,
             dt,
@@ -175,10 +160,10 @@ def main():
             _,
             _,
         ) = construct_arguments(identifier)
-        if pulse == 'False':
-            pulse_bool = False
-        else:
+        if 'pulse' in suite:
             pulse_bool = True
+        else:
+            pulse_bool = False
         if suite == 'cs':
             df_records = df_record_dict['cs']
             rsn = int(
@@ -186,7 +171,7 @@ def main():
                     (archetype, f"hz_{hazard_level}", "RSN"), str(ground_motion)
                 ]
             )
-        elif suite == 'cms':
+        elif 'cms' in suite:
             df_records = df_record_dict['cms']
             rsn = df_records.loc[
                 (*split_archetype(archetype), int(hazard_level), pulse_bool), 'rsn'
@@ -217,39 +202,39 @@ def main():
 
     duration_series.sort_values(ascending=False, inplace=True)
 
-    #
-    # Get an estimated simulation pacing ratio using the existing analyses
-    #
-    log.info('Estimating simulation pacing ratio')
+    # #
+    # # Get an estimated simulation pacing ratio using the existing analyses
+    # #
+    # log.info('Estimating simulation pacing ratio')
 
-    def process_identifier(identifier):
-        _, log_file = db_handler.retrieve_metadata_only(identifier)
-        return parse_log_and_calculate_ratio(log_file)
+    # def process_identifier(identifier):
+    #     _, log_file = db_handler.retrieve_metadata_only(identifier)
+    #     return parse_log_and_calculate_ratio(log_file)
 
-    def estimate_pacing_ratio():
-        db_handler = DB_Handler(
-            db_path='extra/structural_analysis/results/results.sqlite'
-        )
-        identifiers = db_handler.list_identifiers()
-        # Initialize the ProcessPoolExecutor to use all available cores
-        with ProcessPoolExecutor() as executor:
-            # Submit tasks for processing each identifier
-            futures = []
-            for identifier in identifiers:
-                future = executor.submit(process_identifier, identifier)
-                futures.append(future)
+    # def estimate_pacing_ratio():
+    #     db_handler = DB_Handler(
+    #         db_path='extra/structural_analysis/results/results_1.sqlite'
+    #     )
+    #     identifiers = db_handler.list_identifiers()
+    #     # Initialize the ProcessPoolExecutor to use all available cores
+    #     with ProcessPoolExecutor() as executor:
+    #         # Submit tasks for processing each identifier
+    #         futures = []
+    #         for identifier in identifiers:
+    #             future = executor.submit(process_identifier, identifier)
+    #             futures.append(future)
 
-            # Collect the results as they complete
-            ratios = np.empty(len(identifiers))
-            for i, future in enumerate(tqdm(futures)):
-                ratios[i] = future.result()
+    #         # Collect the results as they complete
+    #         ratios = np.empty(len(identifiers))
+    #         for i, future in enumerate(tqdm(futures)):
+    #             ratios[i] = future.result()
 
-        return ratios
+    #     return ratios
 
-    ratios = estimate_pacing_ratio()
+    # ratios = estimate_pacing_ratio()
 
-    sns.ecdfplot(ratios)
-    plt.show()
+    # sns.ecdfplot(ratios)
+    # plt.show()
 
     # We'll use 80.
 
@@ -258,8 +243,8 @@ def main():
     #
     real_duration_estimate = duration_series * 2.00 * 80.00
 
-    num_nodes = 50
-    num_cores = 48 * num_nodes
+    num_nodes = 25
+    num_cores = 47 * num_nodes
     num_hours = 48.00
     max_runtime = num_hours * 60.00 * 60.00 * num_cores
 
@@ -268,6 +253,7 @@ def main():
     duration_dict = real_duration_estimate.to_dict()
 
     while duration_dict:
+        print(len(duration_dict))
         identifiers = []
         durations = []
         while True:
@@ -324,7 +310,6 @@ def main():
                 (
                     archetype,
                     suite,
-                    pulse,
                     hazard_level,
                     ground_motion,
                     dt,
@@ -332,20 +317,17 @@ def main():
                     _,
                     _,
                 ) = construct_arguments(identifier)
-                dt = '0.001'
                 command = (
                     f"python extra/structural_analysis/src/"
                     f"structural_analysis/response_2d.py "
                     f"'--archetype' '{archetype}' "
                     f"'--suite_type' '{suite}' "
-                )
-                if pulse == 'True':
-                    command += "'--pulse' "
-                command += (
                     f"'--hazard_level' '{hazard_level}' "
                     f"'--gm_number' '{ground_motion}' "
                     f"'--analysis_dt' '{dt}' "
                     f"'--direction' '{direction}' "
+                    f"'--damping' 'modal' "
+                    f"'--scaling' '1.00' "
                     f"'--group_id' '{i_group}' "
                     f"\n"
                 )
