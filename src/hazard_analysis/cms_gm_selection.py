@@ -157,11 +157,6 @@ def find_records(
     df_no_pulse: pd.DataFrame,
     num_records: int,
 ) -> pd.DataFrame:
-    # # debug
-    # archetype = 'smrf_3_ii'
-    # hazard_level = '1'
-    # pulse_like = False
-    # import matplotlib.pyplot as plt
 
     target_spectrum = pd.read_csv(
         (
