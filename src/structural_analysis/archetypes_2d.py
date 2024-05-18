@@ -52,6 +52,7 @@ def generate_archetype(
     lvl_weight,
     beam_udls,
     no_diaphragm=False,
+    no_llrs=False,
 ):
     """
     Generate a 2D model of an archetype.
@@ -93,9 +94,7 @@ def generate_archetype(
         index_col=(0),
     )
     df_smf = (
-        df_smf.assign(
-            WorkPtLen_ft=np.sqrt(df_smf.Bay_ft**2 + df_smf.Height_ft**2)
-        )
+        df_smf.assign(WorkPtLen_ft=np.sqrt(df_smf.Bay_ft**2 + df_smf.Height_ft**2))
         .drop(columns=["Bay_ft", "Height_ft"])
         .reset_index()
         .set_index(["Asc_in2", "WorkPtLen_ft"])
@@ -113,9 +112,7 @@ def generate_archetype(
         index_col=(0),
     )
     df_acs = (
-        df_acs.assign(
-            WorkPtLen_ft=np.sqrt(df_acs.Bay_ft**2 + df_acs.Height_ft**2)
-        )
+        df_acs.assign(WorkPtLen_ft=np.sqrt(df_acs.Bay_ft**2 + df_acs.Height_ft**2))
         .drop(columns=["Bay_ft", "Height_ft"])
         .reset_index()
         .set_index(["Asc_in2", "WorkPtLen_ft"])
@@ -207,9 +204,7 @@ def generate_archetype(
         )
 
     x_grd_tags = ["LC", "G1", "G2", "1", "2", "3", "4", "5", "6", "7", "8"]
-    x_grd_locs = np.linspace(
-        0.00, len(x_grd_tags) * 25.00 * 12.00, len(x_grd_tags) + 1
-    )
+    x_grd_locs = np.linspace(0.00, len(x_grd_tags) * 25.00 * 12.00, len(x_grd_tags) + 1)
     x_grd = {x_grd_tags[i]: x_grd_locs[i] for i in range(len(x_grd_tags))}
 
     n_sub = 1  # linear elastic element subdivision
@@ -220,6 +215,10 @@ def generate_archetype(
 
     # system: smrf
     if lateral_system == "smrf":
+
+        if no_llrs:
+            raise ValueError('`no_LLRS=True` is only available for braced frames.')
+
         for level_counter in range(num_levels):
             level_tag = f"level_{level_counter+1}"
             mdl.levels.set_active([level_counter + 1])
@@ -383,9 +382,7 @@ def generate_archetype(
                         placement = "interior"
                     sec = sec_collection.retrieve_by_attr(
                         "name",
-                        sections["inner_frame"]["lateral_cols"][placement][
-                            level_tag
-                        ],
+                        sections["inner_frame"]["lateral_cols"][placement][level_tag],
                     )
                     sec_cp = deepcopy(sec)
                     sec_cp.i_x *= (n_parameter + 1) / n_parameter
@@ -777,51 +774,52 @@ def generate_archetype(
                         brace_mat, mdl.uid_generator.new("section")
                     )
 
-                    bcg.add_diagonal_active(
-                        x_i,
-                        0.00,
-                        x_j,
-                        0.00,
-                        np.array((0.00, 0.00, vertical_offsets[level_counter])),
-                        np.array((0.00, 0.00, vertical_offsets[level_counter])),
-                        "bottom_node",
-                        "top_node",
-                        "Corotational",
-                        brace_subdiv,
-                        bsec,
-                        DispBeamColumn,
-                        "centroid",
-                        0.00,
-                        0.00,
-                        0.1 / 100.00,
-                        None,
-                        None,
-                        "generate_hinged_component_assembly",
-                        {
-                            "n_x": None,
-                            "n_y": None,
-                            "zerolength_gen_i": steel_brace_gusset,
-                            "zerolength_gen_args_i": {
-                                "distance": hinge_dist[level_counter + 1],
-                                "element_type": TwoNodeLink,
-                                "physical_mat": steel_phys_mat,
-                                "d_brace": bsec.properties["OD"],
-                                "l_c": brace_l_c[level_counter + 1],
-                                "t_p": gusset_t_p[level_counter + 1],
-                                "l_b": gusset_avg_buckl_len[level_counter + 1],
+                    if not no_llrs:
+                        bcg.add_diagonal_active(
+                            x_i,
+                            0.00,
+                            x_j,
+                            0.00,
+                            np.array((0.00, 0.00, vertical_offsets[level_counter])),
+                            np.array((0.00, 0.00, vertical_offsets[level_counter])),
+                            "bottom_node",
+                            "top_node",
+                            "Corotational",
+                            brace_subdiv,
+                            bsec,
+                            DispBeamColumn,
+                            "centroid",
+                            0.00,
+                            0.00,
+                            0.1 / 100.00,
+                            None,
+                            None,
+                            "generate_hinged_component_assembly",
+                            {
+                                "n_x": None,
+                                "n_y": None,
+                                "zerolength_gen_i": steel_brace_gusset,
+                                "zerolength_gen_args_i": {
+                                    "distance": hinge_dist[level_counter + 1],
+                                    "element_type": TwoNodeLink,
+                                    "physical_mat": steel_phys_mat,
+                                    "d_brace": bsec.properties["OD"],
+                                    "l_c": brace_l_c[level_counter + 1],
+                                    "t_p": gusset_t_p[level_counter + 1],
+                                    "l_b": gusset_avg_buckl_len[level_counter + 1],
+                                },
+                                "zerolength_gen_j": steel_brace_gusset,
+                                "zerolength_gen_args_j": {
+                                    "distance": hinge_dist[level_counter + 1],
+                                    "element_type": TwoNodeLink,
+                                    "physical_mat": steel_phys_mat,
+                                    "d_brace": bsec.properties["OD"],
+                                    "l_c": brace_l_c[level_counter + 1],
+                                    "t_p": gusset_t_p[level_counter + 1],
+                                    "l_b": gusset_avg_buckl_len[level_counter + 1],
+                                },
                             },
-                            "zerolength_gen_j": steel_brace_gusset,
-                            "zerolength_gen_args_j": {
-                                "distance": hinge_dist[level_counter + 1],
-                                "element_type": TwoNodeLink,
-                                "physical_mat": steel_phys_mat,
-                                "d_brace": bsec.properties["OD"],
-                                "l_c": brace_l_c[level_counter + 1],
-                                "t_p": gusset_t_p[level_counter + 1],
-                                "l_b": gusset_avg_buckl_len[level_counter + 1],
-                            },
-                        },
-                    )
+                        )
 
                 elif lateral_system == "brbf":
                     brbg = BRBGenerator(mdl)
@@ -834,23 +832,24 @@ def generate_archetype(
                     stiffness_mod_factor = interp_smf(trial_point)[0]  # type: ignore
                     casing_size = interp_acs(trial_point)[0]  # type: ignore
 
-                    brbg.add_brb(
-                        x_i,
-                        0.00,
-                        level_counter + 1,
-                        np.array((0.00, 0.00, vertical_offsets[level_counter])),
-                        "bottom_node",
-                        x_j,
-                        0.00,
-                        level_counter,
-                        np.array((0.00, 0.00, vertical_offsets[level_counter])),
-                        "top_node",
-                        area,
-                        38000.00 * 1.10,
-                        29000 * 1e3 * stiffness_mod_factor,
-                        casing_size,
-                        150.00 / (12.00) ** 3,  # lb/in3, approximate brb weight
-                    )
+                    if not no_llrs:
+                        brbg.add_brb(
+                            x_i,
+                            0.00,
+                            level_counter + 1,
+                            np.array((0.00, 0.00, vertical_offsets[level_counter])),
+                            "bottom_node",
+                            x_j,
+                            0.00,
+                            level_counter,
+                            np.array((0.00, 0.00, vertical_offsets[level_counter])),
+                            "top_node",
+                            area,
+                            38000.00 * 1.10,
+                            29000 * 1e3 * stiffness_mod_factor,
+                            casing_size,
+                            150.00 / (12.00) ** 3,  # lb/in3, approximate brb weight
+                        )
 
     # add the gravity framing
     for level_counter in range(num_levels):
@@ -1106,7 +1105,7 @@ def generate_archetype(
     return mdl, loadcase
 
 
-def smrf_3_ii(direction) -> tuple[Model, LoadCase]:
+def smrf_3_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     3 story special moment frame risk category II archetype
     """
@@ -1130,13 +1129,9 @@ def smrf_3_ii(direction) -> tuple[Model, LoadCase]:
         outer_frame=dict(
             lateral_cols=dict(
                 exterior=dict(level_1="W24X94", level_2="W24X94", level_3="W24X94"),
-                interior=dict(
-                    level_1="W24X176", level_2="W24X176", level_3="W24X176"
-                ),
+                interior=dict(level_1="W24X176", level_2="W24X176", level_3="W24X176"),
             ),
-            lateral_beams=dict(
-                level_1="W24X131", level_2="W24X84", level_3="W24X76"
-            ),
+            lateral_beams=dict(level_1="W24X131", level_2="W24X84", level_3="W24X76"),
         ),
     )
 
@@ -1166,12 +1161,13 @@ def smrf_3_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def smrf_3_iv(direction) -> tuple[Model, LoadCase]:
+def smrf_3_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     3 story special moment frame risk category IV archetype
     """
@@ -1194,23 +1190,15 @@ def smrf_3_iv(direction) -> tuple[Model, LoadCase]:
         gravity_beams=dict(level_1="W16X31", level_2="W16X31", level_3="W16X31"),
         outer_frame=dict(
             lateral_cols=dict(
-                exterior=dict(
-                    level_1="W24X146", level_2="W24X146", level_3="W24X146"
-                ),
-                interior=dict(
-                    level_1="W24X279", level_2="W24X279", level_3="W24X279"
-                ),
+                exterior=dict(level_1="W24X146", level_2="W24X146", level_3="W24X146"),
+                interior=dict(level_1="W24X279", level_2="W24X279", level_3="W24X279"),
             ),
-            lateral_beams=dict(
-                level_1="W33X169", level_2="W33X169", level_3="W24X76"
-            ),
+            lateral_beams=dict(level_1="W33X169", level_2="W33X169", level_3="W24X76"),
         ),
         inner_frame=dict(
             lateral_cols=dict(
                 exterior=dict(level_1="W21X62", level_2="W21X62", level_3="W21X62"),
-                interior=dict(
-                    level_1="W24X103", level_2="W24X103", level_3="W24X94"
-                ),
+                interior=dict(level_1="W24X103", level_2="W24X103", level_3="W24X94"),
             ),
             lateral_beams=dict(level_1="W24X76", level_2="W24X76", level_3="W24X76"),
         ),
@@ -1246,12 +1234,13 @@ def smrf_3_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def smrf_6_ii(direction) -> tuple[Model, LoadCase]:
+def smrf_6_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     6 story special moment frame risk category II archetype
     """
@@ -1378,12 +1367,13 @@ def smrf_6_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def smrf_6_iv(direction) -> tuple[Model, LoadCase]:
+def smrf_6_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     6 story special moment frame risk category IV archetype
     """
@@ -1556,12 +1546,13 @@ def smrf_6_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def smrf_9_ii(direction) -> tuple[Model, LoadCase]:
+def smrf_9_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     9 story special moment frame risk category II archetype
     """
@@ -1718,12 +1709,13 @@ def smrf_9_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def smrf_9_iv(direction) -> tuple[Model, LoadCase]:
+def smrf_9_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     9 story special moment frame risk category IV archetype
     """
@@ -1941,12 +1933,13 @@ def smrf_9_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def scbf_3_ii(direction) -> tuple[Model, LoadCase]:
+def scbf_3_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     3 story special concentrically braced frame risk category II
     archetype
@@ -2006,12 +1999,13 @@ def scbf_3_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def scbf_3_iv(direction) -> tuple[Model, LoadCase]:
+def scbf_3_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     3 story special concentrically braced frame risk category IV
     archetype
@@ -2071,12 +2065,13 @@ def scbf_3_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def scbf_6_ii(direction) -> tuple[Model, LoadCase]:
+def scbf_6_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     6 story special concentrically braced frame risk category II
     archetype
@@ -2238,12 +2233,13 @@ def scbf_6_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def scbf_6_iv(direction) -> tuple[Model, LoadCase]:
+def scbf_6_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     6 story special concentrically braced frame risk category IV
     archetype
@@ -2405,12 +2401,13 @@ def scbf_6_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def scbf_9_ii(direction) -> tuple[Model, LoadCase]:
+def scbf_9_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     9 story special concentrically braced frame risk category II
     archetype
@@ -2617,12 +2614,13 @@ def scbf_9_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def scbf_9_iv(direction) -> tuple[Model, LoadCase]:
+def scbf_9_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     9 story special concentrically braced frame risk category IV
     archetype
@@ -2829,12 +2827,13 @@ def scbf_9_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def brbf_3_ii(direction) -> tuple[Model, LoadCase]:
+def brbf_3_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     3 story special buckling restrained braced frame risk category II
     archetype
@@ -2885,12 +2884,13 @@ def brbf_3_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def brbf_3_iv(direction) -> tuple[Model, LoadCase]:
+def brbf_3_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     3 story special buckling restrained braced frame risk category IV
     archetype
@@ -2941,12 +2941,13 @@ def brbf_3_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def brbf_6_ii(direction) -> tuple[Model, LoadCase]:
+def brbf_6_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     6 story special buckling restrained braced frame risk category II
     archetype
@@ -3068,12 +3069,13 @@ def brbf_6_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def brbf_6_iv(direction) -> tuple[Model, LoadCase]:
+def brbf_6_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     6 story special buckling restrained braced frame risk category IV
     archetype
@@ -3195,12 +3197,13 @@ def brbf_6_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def brbf_9_ii(direction) -> tuple[Model, LoadCase]:
+def brbf_9_ii(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     9 story special buckling restrained braced frame risk category II
     archetype
@@ -3352,12 +3355,13 @@ def brbf_9_ii(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase
 
 
-def brbf_9_iv(direction) -> tuple[Model, LoadCase]:
+def brbf_9_iv(direction, no_llrs=False) -> tuple[Model, LoadCase]:
     """
     9 story special buckling restrained braced frame risk category IV
     archetype
@@ -3509,6 +3513,7 @@ def brbf_9_iv(direction) -> tuple[Model, LoadCase]:
         lvl_weight,
         beam_udls,
         no_diaphragm=False,
+        no_llrs=no_llrs,
     )
 
     return mdl, loadcase

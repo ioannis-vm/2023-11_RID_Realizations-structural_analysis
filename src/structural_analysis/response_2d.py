@@ -42,19 +42,20 @@ def main():
     #     '--scaling',
     #     "1.00",
     #     '--group_id',
-    #     '1'
+    #     '1',
     # ]
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--archetype")
-    parser.add_argument("--suite_type")
-    parser.add_argument("--hazard_level")
-    parser.add_argument("--gm_number")
-    parser.add_argument("--analysis_dt")
-    parser.add_argument("--direction")
+    parser.add_argument('--archetype')
+    parser.add_argument('--suite_type')
+    parser.add_argument('--hazard_level')
+    parser.add_argument('--gm_number')
+    parser.add_argument('--analysis_dt')
+    parser.add_argument('--direction')
     parser.add_argument('--damping')
     parser.add_argument('--scaling')
-    parser.add_argument("--group_id")
+    parser.add_argument('--group_id')
+    parser.add_argument('--no_LLRS', action='store_true')
 
     args = parser.parse_args()
     archetype = args.archetype
@@ -66,6 +67,7 @@ def main():
     damping = args.damping
     additional_scaling = float(args.scaling)
     group_id = int(args.group_id)
+    no_llrs = args.no_LLRS
 
     def split_archetype(archetype):
         system, stories, rc = archetype.split('_')
@@ -81,7 +83,7 @@ def main():
     except AttributeError as exc:
         raise ValueError(f"Invalid archetype code: {archetype}") from exc
 
-    mdl, loadcase = archetype_builder(direction)
+    mdl, loadcase = archetype_builder(direction, no_llrs=no_llrs)
 
     num_levels = len(mdl.levels) - 1
     level_heights = np.diff([level.elevation for level in mdl.levels.values()])
