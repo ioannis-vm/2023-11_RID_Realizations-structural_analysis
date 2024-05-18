@@ -85,7 +85,7 @@ def main():
         'extra/structural_analysis/results/results_9.sqlite',
         'extra/structural_analysis/results/results_10.sqlite',
     ][i*3:i*3+3]
-    
+
     result_db_handler = DB_Handler(
         db_path='extra/structural_analysis/results/edps.sqlite'
     )
