@@ -23,10 +23,7 @@ def parse_id(identifier):
     system, stories, rc = archetype.split('_')
     if pulse == 'True':
         suite_type = 'cs_pulse'
-    if progress_bar == 'True':
-        pbar = True
-    else:
-        pbar = False
+    pbar = bool(progress_bar == 'True')
     return (
         system,
         stories,

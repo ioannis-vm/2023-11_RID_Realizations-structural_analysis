@@ -98,11 +98,11 @@ def main():
         db_handler = DB_Handler(db_path=path)
         identifiers = db_handler.list_identifiers()
 
-        for j, identifier in enumerate(identifiers):
+        for identifier in identifiers:
             if identifier in processed_identifiers:
                 already_processed.append(identifier)
                 continue
-            dataframe, metadata, log_content = db_handler.retrieve_data(identifier)
+            dataframe, _, log_content = db_handler.retrieve_data(identifier)
             status = status_from_log(log_content)
             if status == 'finished':
                 edps = obtain_edps(dataframe)

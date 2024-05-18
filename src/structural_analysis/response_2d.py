@@ -116,8 +116,8 @@ def main():
         dir_idx = {"x": 0, "y": 1}
         try:
             gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
-        except ValueError:
-            raise ValueError(f'RSN {rsn} not available.')
+        except ValueError as exc:
+            raise ValueError(f'RSN {rsn} not available.') from exc
         gm_data = import_PEER(gm_filename)
         gm_dt = gm_data[1, 0] - gm_data[0, 0]
         ag = gm_data[:, 1] * scaling
@@ -130,10 +130,7 @@ def main():
         df_records.sort_index(axis=0, inplace=True)
         df_records.sort_index(axis=1, inplace=True)
 
-        if 'pulse' in suite_type:
-            pulse = True
-        else:
-            pulse = False
+        pulse = bool('pulse' in suite_type)
 
         rsn = df_records.loc[
             (*split_archetype(archetype), int(hazard_level), pulse), 'rsn'
@@ -145,8 +142,8 @@ def main():
         dir_idx = {"x": 0, "y": 1}
         try:
             gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
-        except ValueError:
-            raise ValueError(f'RSN {rsn} not available.')
+        except ValueError as exc:
+            raise ValueError(f'RSN {rsn} not available.') from exc
         gm_data = import_PEER(gm_filename)
         gm_dt = gm_data[1, 0] - gm_data[0, 0]
         ag = gm_data[:, 1] * scaling
@@ -250,7 +247,7 @@ def main():
     )
 
     # get log contents
-    with open(log_file, 'r') as file:
+    with open(log_file, 'r', encoding='utf-8') as file:
         log_contents = file.read()
     # get session metadata
 
