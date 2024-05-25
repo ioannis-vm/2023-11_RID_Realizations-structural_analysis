@@ -31,7 +31,7 @@ def main():
     # set parameters
     #
 
-    date_prefix = '20240505'
+    date_prefix = '20240522'
 
     #
     # retrieve study variables
@@ -39,11 +39,6 @@ def main():
 
     nhz = int(read_study_param('extra/structural_analysis/data/study_vars/m'))
     ngm_cs = int(read_study_param('extra/structural_analysis/data/study_vars/ngm_cs'))
-    ngm_cms = int(read_study_param('extra/structural_analysis/data/study_vars/ngm_cms'))
-    ngm_pulse = int(
-        float(read_study_param('extra/structural_analysis/data/study_vars/ngm_cms'))
-        / 4.00
-    )
 
     #
     # generate cases
@@ -52,13 +47,10 @@ def main():
     log.info('Generate cases')
     hazard_levels = [f'{i+1}' for i in range(nhz)]
     ground_motions = [f'{i+1}' for i in range(ngm_cs)]
-    ground_motions_cms = [f'{i+1}' for i in range(ngm_cms)]
-    ground_motions_pulse = [f'{i+1}' for i in range(ngm_pulse)]
     directions = ('x', 'y')
     codes = ("smrf", "scbf", "brbf")
     stories = ("3", "6", "9")
     rcs = ("ii", "iv")
-    suites = ('cms', 'cms_pulse', 'cs')
     cases = [f"{c}_{s}_{r}" for c in codes for s in stories for r in rcs]
 
     #
@@ -66,7 +58,7 @@ def main():
     #
 
     log.info('Obtain existing runs')
-    existing_paths = glob('extra/structural_analysis/results/*.sqlite')
+    existing_paths = glob('extra/structural_analysis/results/results_*.sqlite')
     existing_identifiers = []
     for path in existing_paths:
         db_handler = DB_Handler(db_path=path)
@@ -106,22 +98,15 @@ def main():
         return identifier.split('::')
 
     for arch in cases:
-        for suite in suites:
-            if suite == 'cs':
-                gms = ground_motions
+        gms = ground_motions
+        for hz, gm, dr in product(hazard_levels, gms, directions):
+            identifier = construct_identifier(
+                arch, 'cs', hz, gm, '0.001', dr, 'modal', '1.0'
+            )
+            if identifier in existing_identifiers:
+                existing.append(identifier)
             else:
-                if 'pulse' in suite:
-                    gms = ground_motions_pulse
-                else:
-                    gms = ground_motions_cms
-            for hz, gm, dr in product(hazard_levels, gms, directions):
-                identifier = construct_identifier(
-                    arch, suite, hz, gm, '0.001', dr, 'modal', '1.0'
-                )
-                if identifier in existing_identifiers:
-                    existing.append(identifier)
-                else:
-                    required.append(identifier)
+                required.append(identifier)
 
     #
     # get ground motion duration
@@ -236,47 +221,54 @@ def main():
     # sns.ecdfplot(ratios)
     # plt.show()
 
-    # We'll use 80.
-
     #
     # Split identifires to groups to assign to jobs
     #
     real_duration_estimate = duration_series * 2.00 * 80.00
 
-    num_nodes = 25
+    num_nodes = 4
     num_cores = 47 * num_nodes
     num_hours = 48.00
     max_runtime = num_hours * 60.00 * 60.00 * num_cores
 
-    groups = []
-
     duration_dict = real_duration_estimate.to_dict()
 
+    groups = []
+    group = []
+    durations = []
+
     while duration_dict:
-        print(len(duration_dict))
-        identifiers = []
-        durations = []
-        while True:
-            # Get another item
-            identifier, duration = duration_dict.popitem()
-            # If we exceed the runtime
-            if np.sum(durations) + duration > max_runtime:
-                # put it back in and stop
+
+        # Get another item
+        identifier, duration = duration_dict.popitem()
+        # If we exceed the runtime
+        if np.sum(durations) + duration > max_runtime:
+            # and if there are more items
+            if duration_dict:
+
+                print(len(duration_dict))
+
+                # put it back in and move to next group
                 duration_dict[identifier] = duration
-                break
+                groups.append(group)
+                group = []
+                durations = []
+                
 
-            # Stop if we ran out of items
-            if not duration_dict:
-                break
+        # otherwise keep adding to the group
+        group.append(identifier)
+        durations.append(duration)
 
-            # otherwise keep adding to the group
-            identifiers.append(identifier)
-            durations.append(duration)
-
-        # add the group to the list of groups
-        groups.append(identifiers)
+    # add the last group
+    groups.append(group)
 
     print(len(groups))
+
+    # Check that we included all required identifiers.
+    in_groups = set(groups[0] + groups[1])
+    for x in required:
+        if x not in in_groups:
+            print(x)
 
     #
     # Generate slurm scripts and taskfiles

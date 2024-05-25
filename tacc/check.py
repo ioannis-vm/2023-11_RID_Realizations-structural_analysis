@@ -4,6 +4,7 @@ analysis stats.
 """
 
 import re
+import subprocess
 from glob import glob
 
 
@@ -78,12 +79,16 @@ def main():
 
     directory = (
         '/scratch/07506/usr83847/2023-11_RID_Realizations/'
-        'extra/structural_analysis/tacc/20240507/'
+        'extra/structural_analysis/tacc/'
     )
 
     files = glob(
         directory + '*_log.o*',
     )
+
+    # files = [
+    #     f'{directory}/20240520_nlth_group_8001_2_log.o545949',
+    # ]
 
     for filepath in files:
 
@@ -108,3 +113,73 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+def get_remaining_tasks(output_file):
+    """
+    Create SLRUM files for cancelled jobs that had running tasks, used
+    when downscaling a job that is almost finished but has a few long
+    tasks and we want to avoid being charged for the inactive nodes.
+
+    """
+
+    job_id, ntasks, num_processes, running, complete, error, error_msg = (
+        process_output_file(output_file)
+    )
+
+    with open(output_file, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    # get a dict mapping task IDs to their command
+    for line in lines:
+        if 'Process 0: Parsed ' in line:
+            matched = re.search(r'Tasks: {(.+)}$', line)
+            assert matched
+            tasks = matched.group(1)
+    tasks_dict = {}
+    tasks_list = tasks.split(',')
+    for thing in tasks_list:
+        tid, tstr = thing.split(':')
+        tasks_dict[tid.strip()] = tstr.replace('"', '').strip()
+
+    # get a list with the commands that were still running
+    remaining_tasks = []
+    for thing in running:
+        remaining_tasks.append(tasks_dict[thing] + '\n')
+
+    return remaining_tasks
+
+    # # put them in a file
+    # with open(taskfile_path, 'w', encoding='utf-8') as f:
+    #     f.writelines(remaining_tasks)
+
+    # print(f'Remaining tasks: {len(remaining_tasks)}')
+
+
+def get_all_remaining_tasks():
+    """
+    Get all remaining tasks.
+    """
+
+    res = subprocess.run(
+        ['squeue', '--me'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    running_job_ids = set([x.strip().split(' ')[0] for x in res.stdout.split('\n')][1:][:-1])
+    
+    output_files = glob('*.o*')
+    stopped = []
+    for output_file in output_files:
+        job_id = output_file.split('.o')[1]
+        if job_id not in running_job_ids:
+            stopped.append(output_file)
+    
+    remaining_tasks = []
+    for stopped_file in stopped:
+        remaining_tasks.extend(get_remaining_tasks(stopped_file))
+
+    print('Number of nodes to finish in one go:')
+    print(int(len(remaining_tasks) / 47 + 1))
+
+    # put them in a file
+    with open('remaining_taskfile', 'w', encoding='utf-8') as f:
+        f.writelines(remaining_tasks)

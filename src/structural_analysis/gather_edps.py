@@ -7,39 +7,10 @@ import pandas as pd
 from extra.structural_analysis.src.db import DB_Handler
 
 
-def parse_id(identifier):
-    parts = identifier.split('::')
-    (
-        archetype,
-        suite_type,
-        pulse,
-        hazard_level,
-        ground_motion,
-        dt,
-        direction,
-        progress_bar,
-        damping,
-    ) = parts
-    system, stories, rc = archetype.split('_')
-    if pulse == 'True':
-        suite_type = 'cs_pulse'
-    pbar = bool(progress_bar == 'True')
-    return (
-        system,
-        stories,
-        rc,
-        suite_type,
-        hazard_level,
-        ground_motion,
-        dt,
-        direction,
-        pbar,
-        damping,
-    )
-
-
 def main():
-    db_handler = DB_Handler(db_path='extra/structural_analysis/results/edps.sqlite')
+    db_handler = DB_Handler(
+        db_path='extra/structural_analysis/results/edp_results_0.sqlite'
+    )
     identifiers = db_handler.list_identifiers()
 
     # # Remove repeated results
@@ -59,82 +30,54 @@ def main():
     #             db_handler.delete_record(rrep)
     # # Note: Check for repeated results once again.
 
-    # dts = {}
-    # for identifier in tqdm(identifiers):
-    #     (
-    #         archetype,
-    #         suite_type,
-    #         hazard_level,
-    #         ground_motion,
-    #         dt,
-    #         direction,
-    #         progress_bar,
-    #         damping,
-    #     ) = parse_id(identifier)
-    #     if dt not in dts:
-    #         dts[dt] = 1
-    #     else:
-    #         dts[dt] += 1
 
     dfs = {}
     for identifier in tqdm(identifiers):
-        (
-            system,
-            stories,
-            risk_category,
-            suite_type,
-            hazard_level,
-            ground_motion,
-            _,
-            direction,
-            _,
-            _,
-        ) = parse_id(identifier)
         df, _, _ = db_handler.retrieve_data(identifier)
-        key = (
-            system,
-            stories,
-            risk_category,
-            hazard_level,
-            ground_motion,
-            direction,
-        )
-        if suite_type in dfs:
-            dfs[suite_type][key] = df
-        else:
-            dfs[suite_type] = {key: df}
+        dfs[identifier] = df
 
-    merged_dfs = {}
-    for suite_type in dfs:
-        if suite_type in merged_dfs:
-            continue
-        merged_dfs[suite_type] = pd.concat(
-            dfs[suite_type].values(), keys=dfs[suite_type].keys()
-        )
-        merged_dfs[suite_type].index.names = [
-            'system',
-            'stories',
-            'rc',
-            'hz',
-            'gm',
-            'dir',
-            'edp',
-            'loc',
-            'dir_num',
-        ]
-        merged_dfs[suite_type].index = merged_dfs[suite_type].index.droplevel(
-            'dir_num'
-        )
-        merged_dfs[suite_type].index = merged_dfs[suite_type].index.reorder_levels(
-            ['system', 'stories', 'rc', 'hz', 'edp', 'loc', 'dir', 'gm']
-        )
-    for suite_type in dfs:
-        merged_dfs[suite_type] = pd.DataFrame(
-            merged_dfs[suite_type], columns=['value']
-        )
+    merged_df = pd.concat(
+        dfs.values(), keys=[tuple(x.split('::')) for x in dfs.keys()]
+    )
 
-    for suite_type in dfs:
-        merged_dfs[suite_type].to_parquet(f'data/edp_extended_{suite_type}.parquet')
+    merged_df.index.names = [
+        'archetype',
+        'suite',
+        'hz',
+        'gm',
+        'dt',
+        'dir',
+        'damping',
+        'scaling',
+        'edp',
+        'loc',
+        'dir_num',
+    ]
+    
+    merged_df.index = merged_df.index.droplevel(['suite', 'dt', 'damping', 'scaling', 'dir_num'])
+
+    merged_df = pd.DataFrame(merged_df, columns=['value'])
+
+    # add RSN and scaling info
+    df_records = pd.read_csv(
+        "extra/structural_analysis/results/site_hazard/"
+        "required_records_and_scaling_factors_cs.csv",
+        index_col=[0, 1, 2],
+    )
+    rsns = []
+    scaling_factors = []
+    for idx in merged_df.index:
+        archetype, hazard_level, gm, _, _, _ = idx
+        rsn = int(
+            df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), gm]
+        )
+        scaling = df_records.at[(archetype, f"hz_{hazard_level}", "SF"), gm]
+        rsns.append(rsn)
+        scaling_factors.append(scaling)
+
+    merged_df['rsn'] = rsns
+    merged_df['scaling_factor'] = scaling_factors
+    merged_df.to_parquet(f'data/edp_results_0_cs.parquet')
 
 
 if __name__ == '__main__':
