@@ -22,6 +22,8 @@ def main():
     num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
     ngm = int(read_study_param("extra/structural_analysis/data/study_vars/ngm_cs"))
 
+    num_hz_adjusted = num_hz + 4
+
     # initialize
     dfs_arch = []
     conditioning_periods = pd.Series(np.empty(len(cases)), index=cases)
@@ -34,7 +36,7 @@ def main():
 
         # initialize
         dfs_hz = []
-        for hz in range(num_hz):
+        for hz in range(num_hz_adjusted):
             path = (
                 f"extra/structural_analysis/results/site_hazard/"
                 f"{arch}/required_records_hz_{hz+1}"
@@ -47,7 +49,9 @@ def main():
             df.index.name = "Record Number"
             df.columns = pd.Index(["RSN", "SF"])
             dfs_hz.append(df)
-        df = pd.concat(dfs_hz, axis=1, keys=[f"hz_{i+1}" for i in range(num_hz)])
+        df = pd.concat(
+            dfs_hz, axis=1, keys=[f"hz_{i+1}" for i in range(num_hz_adjusted)]
+        )
         dfs_arch.append(df)
 
     df = pd.concat(dfs_arch, axis=1, keys=cases)

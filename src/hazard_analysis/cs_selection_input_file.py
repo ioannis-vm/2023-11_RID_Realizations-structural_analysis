@@ -20,6 +20,8 @@ def main() -> None:
     num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
     vs30 = float(read_study_param("extra/structural_analysis/data/study_vars/vs30"))
 
+    num_hz_adjusted = num_hz + 4
+
     dfs_arch = []
     conditioning_periods: pd.Series = pd.Series(np.empty(len(cases)), index=cases)
 
@@ -30,7 +32,7 @@ def main() -> None:
         conditioning_periods[arch] = t_bar
 
         dfs_hz = []
-        for hz in range(num_hz):
+        for hz in range(num_hz_adjusted):
             path = (
                 f"extra/structural_analysis/results/"
                 f"site_hazard/{arch}/deaggregation_{hz+1}.txt"
@@ -63,7 +65,7 @@ def main() -> None:
     # generate input file for CS_Selection
     rows = []
     for arch in cases:
-        for hz in range(num_hz):
+        for hz in range(num_hz_adjusted):
             rows.append(
                 [
                     conditioning_periods[arch],

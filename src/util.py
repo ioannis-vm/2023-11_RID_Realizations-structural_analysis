@@ -124,7 +124,7 @@ def interpolate_pd_series(series, values):
     """
     idx_vec = series.index.to_numpy()
     vals_vec = series.to_numpy()
-    ifun = interp1d(idx_vec, vals_vec)
+    ifun = interp1d(idx_vec, vals_vec, kind='linear', fill_value='extrapolate')
     if isinstance(values, float):
         return float(ifun(values))
     if isinstance(values, np.ndarray):

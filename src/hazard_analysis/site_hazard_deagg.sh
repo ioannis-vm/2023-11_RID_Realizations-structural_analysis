@@ -19,7 +19,7 @@ if [ -f "$jar_file_path" ]; then
     echo "The file exists."
 else
     echo "The file does not exist. Downloading file."
-    wget -P external_tools/ "http://opensha.usc.edu/apps/opensha/nightlies/latest/opensha-all.jar"
+    wget -P extra/structural_analysis/external_tools/ "http://opensha.usc.edu/apps/opensha/nightlies/latest/opensha-all.jar"
 fi
 
 # compile java code if it has not been compiled already
@@ -40,16 +40,15 @@ do
     # Get the hazard level midpoint Sa's
     mapes=$(awk -F, '{if (NR!=1) {print $6}}' extra/structural_analysis/results/site_hazard/Hazard_Curve_Interval_Data.csv)
 
-    i=1
+    i=26
     for mape in $mapes
     do
 
 	# perform seismic hazard deaggregation
-	mkdir -p extra/structural_analysis/results/$code/site_hazard
+	mkdir -p extra/structural_analysis/results/site_hazard/$code
 	sa=$(python extra/structural_analysis/src/hazard_analysis/interp_uhs.py --period $period --mape $mape)
 	java -classpath $jar_file_path:extra/structural_analysis/src/hazard_analysis DisaggregationCalc $period $latitude $longitude $vs30 $sa extra/structural_analysis/results/site_hazard/$code/deaggregation_$i.txt
-
-	i=$(($i+1))	
+	i=$(($i+1))
 
     done
         
