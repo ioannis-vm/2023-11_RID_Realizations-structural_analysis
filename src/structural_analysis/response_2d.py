@@ -17,6 +17,34 @@ from extra.structural_analysis.src.util import retrieve_peer_gm_data
 from extra.structural_analysis.src.db import DB_Handler
 
 
+def obtain_edps(dataframe):
+    """
+    Extracts the EDPs from a dataframe containing the full
+    time-history analysis results.
+    The EDPs are `PFA`, `PFV`, `PID`, and `RID`.
+
+    Parameters
+    ----------
+    dataframe: pd.DataFrame
+        Dataframe containing the full time-hisotyr analysis results.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe containing the EDPs
+
+    """
+    edps = dataframe.abs().max().drop(['Rtime', 'Subdiv', 'Vb'])
+    edps['FA'] /= 386.22
+    edps.index = pd.MultiIndex.from_tuples(
+        [(f'P{x[0]}', x[1], x[2]) for x in edps.index]
+    )
+    rid = dataframe.iloc[-1, :]['ID'].abs()
+    rid.index = pd.MultiIndex.from_tuples([('RID', x[0], x[1]) for x in rid.index])
+    edps = pd.concat((edps, rid), axis=0)
+    return edps
+
+
 def main():
     # ~~~~~~~~~~~~~~~~~~~~~~ #
     # set up argument parser #
@@ -26,23 +54,23 @@ def main():
     # sys.argv = [
     #     "python",
     #     "--archetype",
-    #     "scbf_9_ii",
+    #     "brbf_3_iv",
     #     "--suite_type",
-    #     "cms",
+    #     "cs",
     #     "--hazard_level",
-    #     "4",
+    #     "29",
     #     "--gm_number",
-    #     "2",
+    #     "1",
     #     "--analysis_dt",
-    #     "0.01",
+    #     "0.001",
     #     "--direction",
-    #     "y",
+    #     "x",
     #     '--damping',
     #     "modal",
     #     '--scaling',
     #     "1.00",
     #     '--group_id',
-    #     '1',
+    #     '99999',
     # ]
 
     parser = argparse.ArgumentParser()
@@ -124,33 +152,8 @@ def main():
         gm_dt = gm_data[1, 0] - gm_data[0, 0]
         ag = gm_data[:, 1] * scaling
 
-    elif suite_type in {'cms', 'cms_pulse'}:
-        df_records = pd.read_csv(
-            "extra/structural_analysis/results/site_hazard/ground_motions_cms.csv",
-            index_col=[0, 1, 2, 3, 4],
-        )
-        df_records.sort_index(axis=0, inplace=True)
-        df_records.sort_index(axis=1, inplace=True)
-
-        pulse = bool('pulse' in suite_type)
-
-        rsn = df_records.loc[
-            (*split_archetype(archetype), int(hazard_level), pulse), 'rsn'
-        ].to_list()[int(gm_number) - 1]
-        scaling = df_records.loc[
-            (*split_archetype(archetype), int(hazard_level), pulse), 'scaling'
-        ].to_list()[int(gm_number) - 1]
-
-        dir_idx = {"x": 0, "y": 1}
-        try:
-            gm_filename = retrieve_peer_gm_data(rsn)[dir_idx[direction]]
-        except ValueError as exc:
-            raise ValueError(f'RSN {rsn} not available.') from exc
-        gm_data = import_PEER(gm_filename)
-        gm_dt = gm_data[1, 0] - gm_data[0, 0]
-        ag = gm_data[:, 1] * scaling
-
     else:
+        # Note: we examined CMS suites and decided not to use them.
         raise NotImplementedError(f'Unsupported suite type: {suite_type}')
 
     ag *= additional_scaling
@@ -307,16 +310,19 @@ def main():
     df.columns = pd.MultiIndex.from_tuples([x.split("-") for x in df.columns.to_list()])
     df.sort_index(axis=1, inplace=True)
 
+    df = df.set_index('time')
+    df = df[~df.index.duplicated()]
+
     # interpoate to a time step of 0.01 (to save space)
     # and set index to `time`
-    df = df.set_index('time')
     step = 0.01
     new_index = np.arange(df.index.min(), df.index.max() + step, step)
-    df_resampled = df.reindex(new_index).interpolate(method='index')
-    df_resampled['Subdiv'] = df_resampled['Subdiv'].astype('int')
+    df_resampled = pd.DataFrame(index=new_index, columns=df.columns)
+    df_resampled.index.name = df.index.name
+    for col in df.columns:
+        df_resampled[col] = np.interp(new_index, df.index.values, df[col].values)
 
     # add the results to the database
-
     if not os.path.isdir(f'extra/structural_analysis/results/{sub_path}'):
         os.makedirs(f'extra/structural_analysis/results/{sub_path}')
     db_handler = DB_Handler(
@@ -340,6 +346,30 @@ def main():
         }
         with open(
             Path(f'extra/structural_analysis/results/{sub_path}{identifier}'), 'wb'
+        ) as f:
+            pickle.dump(out, f)
+
+    # add EDP results to the database
+    edp_db_handler = DB_Handler(
+        db_path=(
+            f'extra/structural_analysis/results/'
+            f'{sub_path}edp_results_{group_id}.sqlite'
+        )
+    )
+    edps = obtain_edps(df)
+    try:
+        edp_db_handler.store_data(identifier, edps, '', '')
+    except:  # noqa: E722, pylint: disable=bare-except
+        # if it fails *for any reason*, pickle the result variables and save them
+        # with a unique name
+        out = {
+            'identifier': identifier,
+            'dataframe': df_resampled,
+            'metadata': info,
+            'log_content': log_contents,
+        }
+        with open(
+            Path(f'extra/structural_analysis/results/{sub_path}edp_{identifier}'), 'wb'
         ) as f:
             pickle.dump(out, f)
 
