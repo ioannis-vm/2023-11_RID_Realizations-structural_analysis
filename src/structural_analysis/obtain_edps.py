@@ -7,6 +7,7 @@ import os
 import sys
 import pickle
 import pandas as pd
+from tqdm import tqdm
 from extra.structural_analysis.src.db import DB_Handler
 
 
@@ -56,9 +57,6 @@ def obtain_edps(dataframe):
 
 def main():
 
-    i = int(sys.argv[1])
-    # i ranges from 0 to 4 (5 values)
-
     issue_dict_path = 'extra/structural_analysis/results/edps_issue.pickle'
     if not os.path.isfile(issue_dict_path):
         issue = []
@@ -69,11 +67,6 @@ def main():
             issue = pickle.load(f)
 
     database_paths = [
-        'extra/structural_analysis/results/results_01.sqlite',
-        'extra/structural_analysis/results/results_02.sqlite',
-        'extra/structural_analysis/results/results_03.sqlite',
-        'extra/structural_analysis/results/results_04.sqlite',
-        'extra/structural_analysis/results/results_05.sqlite',
         'extra/structural_analysis/results/results_1.sqlite',
         'extra/structural_analysis/results/results_2.sqlite',
         'extra/structural_analysis/results/results_3.sqlite',
@@ -84,7 +77,12 @@ def main():
         'extra/structural_analysis/results/results_8.sqlite',
         'extra/structural_analysis/results/results_9.sqlite',
         'extra/structural_analysis/results/results_10.sqlite',
-    ][i*3:i*3+3]
+        'extra/structural_analysis/results/results_11.sqlite',
+        'extra/structural_analysis/results/results_12.sqlite',
+        'extra/structural_analysis/results/results_13.sqlite',
+        'extra/structural_analysis/results/results_14.sqlite',
+        'extra/structural_analysis/results/results_15.sqlite',
+    ]
 
     result_db_handler = DB_Handler(
         db_path='extra/structural_analysis/results/edps.sqlite'
@@ -98,10 +96,11 @@ def main():
         db_handler = DB_Handler(db_path=path)
         identifiers = db_handler.list_identifiers()
 
-        for identifier in identifiers:
+        for identifier in tqdm(identifiers):
             if identifier in processed_identifiers:
                 already_processed.append(identifier)
                 continue
+
             dataframe, _, log_content = db_handler.retrieve_data(identifier)
             status = status_from_log(log_content)
             if status == 'finished':
