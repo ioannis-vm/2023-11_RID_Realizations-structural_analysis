@@ -11,7 +11,7 @@
 #SBATCH --mail-user=ioannis_vm@berkeley.edu
 
 source $HOME/.bashrc
-micromamba activate rid_prj
+micromamba activate rid_prj_392
 
 export OMP_NUM_THREADS=1
 export PYTHONPATH=$PYTHONPATH:$(pwd)
