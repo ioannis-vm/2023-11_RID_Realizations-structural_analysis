@@ -247,7 +247,7 @@ class DB_Handler:
             # The SQL query uses the IN clause to fetch all relevant entries at once
             query = (
                 f"SELECT id, metadata, log FROM results_table "
-                f"WHERE id IN ({','.join('?'*len(identifiers))}) "
+                f"WHERE id IN ({','.join('?' * len(identifiers))}) "
                 f"AND chunk_id = 0"
             )
             c.execute(query, identifiers_tuple)

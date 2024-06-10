@@ -4,7 +4,6 @@ relevant EDPs
 """
 
 import os
-import sys
 import pickle
 import pandas as pd
 from tqdm import tqdm

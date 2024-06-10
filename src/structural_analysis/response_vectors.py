@@ -41,7 +41,7 @@ def process_item(item):
     )
 
     response_dirs = [
-        f"{input_dir}/gm{i+1}"
+        f"{input_dir}/gm{i + 1}"
         for input_dir, i in zip([input_dir] * num_inputs, range(num_inputs))
     ]
 
@@ -86,7 +86,7 @@ def process_item(item):
 def main():
     num_hz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
     for i in range(num_hz):
-        process_item(('scbf_9_ii', f'{i+1}'))
+        process_item(('scbf_9_ii', f'{i + 1}'))
 
 
 if __name__ == '__main__':

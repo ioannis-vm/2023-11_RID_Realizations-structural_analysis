@@ -35,7 +35,7 @@ def main() -> None:
         for hz in range(num_hz_adjusted):
             path = (
                 f"extra/structural_analysis/results/"
-                f"site_hazard/{arch}/deaggregation_{hz+1}.txt"
+                f"site_hazard/{arch}/deaggregation_{hz + 1}.txt"
             )
             df = pd.read_csv(
                 path,
@@ -47,7 +47,7 @@ def main() -> None:
                 header=None,
             )
             df.index.name = "parameter"
-            df.columns = pd.Index([f"hz_{hz+1}"])
+            df.columns = pd.Index([f"hz_{hz + 1}"])
             dfs_hz.append(df)
         df = pd.concat(dfs_hz, axis=1)
         dfs_arch.append(df)
@@ -69,12 +69,12 @@ def main() -> None:
             rows.append(
                 [
                     conditioning_periods[arch],
-                    df.at[(arch, f"hz_{hz+1}"), "Mbar"],
-                    df.at[(arch, f"hz_{hz+1}"), "Dbar"],
-                    df.at[(arch, f"hz_{hz+1}"), "Ebar"],
+                    df.at[(arch, f"hz_{hz + 1}"), "Mbar"],
+                    df.at[(arch, f"hz_{hz + 1}"), "Dbar"],
+                    df.at[(arch, f"hz_{hz + 1}"), "Ebar"],
                     vs30,
                     f"extra/structural_analysis/results/site_hazard/{arch}/",
-                    f"required_records_hz_{hz+1}.txt",
+                    f"required_records_hz_{hz + 1}.txt",
                     arch,
                     hz + 1,
                 ]

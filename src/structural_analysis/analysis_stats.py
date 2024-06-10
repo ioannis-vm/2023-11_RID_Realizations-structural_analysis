@@ -67,8 +67,8 @@ if __name__ == "__main__":
     atypes = ("scbf",)
     stors = ("9",)
     rcs = ("ii",)
-    hzs = [f"{i+1}" for i in range(nhz)]
-    gms = [f"gm{i+1}" for i in range(ngm_cs)]
+    hzs = [f"{i + 1}" for i in range(nhz)]
+    gms = [f"gm{i + 1}" for i in range(ngm_cs)]
 
     keys = []
     vals: dict[str, list] = {'status': [], 'start_time': [], 'end_time': [], 'sub': []}

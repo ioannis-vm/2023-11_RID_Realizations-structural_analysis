@@ -311,6 +311,7 @@ def main():
     df.sort_index(axis=1, inplace=True)
 
     df = df.set_index('time')
+    # pylint: disable=unsubscriptable-object
     df = df[~df.index.duplicated()]
 
     # interpoate to a time step of 0.01 (to save space)

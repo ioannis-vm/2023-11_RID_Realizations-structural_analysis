@@ -49,8 +49,8 @@ def main():
     #
 
     log.info('Generate cases')
-    hazard_levels = [f'{i+1}' for i in range(nhz_adjusted)]
-    ground_motions = [f'{i+1}' for i in range(ngm_cs)]
+    hazard_levels = [f'{i + 1}' for i in range(nhz_adjusted)]
+    ground_motions = [f'{i + 1}' for i in range(ngm_cs)]
     directions = ('x', 'y')
     codes = ("smrf", "scbf", "brbf")
     stories = ("3", "6", "9")
@@ -151,7 +151,11 @@ def main():
         ) = construct_arguments(identifier)
         if suite == 'cs':
             df_records = df_record_dict['cs']
-            rsn = int( df_records.at[ (archetype, f"hz_{hazard_level}", "RSN"), str(ground_motion) ] )
+            rsn = int(
+                df_records.at[
+                    (archetype, f"hz_{hazard_level}", "RSN"), str(ground_motion)
+                ]
+            )
         else:
             raise ValueError(f'Encountered invalid suite: {suite}')
         rsns[identifier] = rsn

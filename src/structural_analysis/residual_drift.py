@@ -50,8 +50,8 @@ rcs = ("ii",)
 ngm_cs = int(read_study_param("extra/structural_analysis/data/study_vars/ngm_cs"))
 nhz = int(read_study_param("extra/structural_analysis/data/study_vars/m"))
 
-hzs = [f"{i+1}" for i in range(nhz)]
-gms = [f"gm{i+1}" for i in range(ngm_cs)]
+hzs = [f"{i + 1}" for i in range(nhz)]
+gms = [f"gm{i + 1}" for i in range(ngm_cs)]
 
 total = len(types) * len(stors) * len(rcs) * len(hzs)
 pbar = tqdm(total=total, unit="item")
@@ -87,8 +87,8 @@ for tp, st, rc, hz in product(types, stors, rcs, hzs):
             else:
                 idr = 2
             for i in range(num_stories):
-                index = ("RID", f"{i+1}", f"{idr}")
-                vals = data[("ID", f"{i+1}", f"{idr}")]
+                index = ("RID", f"{i + 1}", f"{idr}")
+                vals = data[("ID", f"{i + 1}", f"{idr}")]
                 rid, _, _ = get_rid(vals)
                 if index in rid_columns:
                     rid_columns[index].append(rid)

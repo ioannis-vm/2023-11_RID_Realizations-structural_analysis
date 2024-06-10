@@ -7,8 +7,8 @@ import pandas as pd
 from osmg import solver
 from osmg.gen.query import ElmQuery
 from osmg.common import G_CONST_IMPERIAL
-from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
 import matplotlib.pyplot as plt
+from extra.structural_analysis.src.structural_analysis.archetypes_2d import scbf_9_ii
 
 
 def main():
@@ -87,7 +87,7 @@ def main():
     res_df['Drift 1'] = (res_df['Level 1'] / level_heights[0]) * 100.00
     for i in range(2, num_levels + 1):
         res_df[f'Drift {i}'] = (
-            (res_df[f'Level {i}'] - res_df[f'Level {i-1}']) / level_heights[i - 1]
+            (res_df[f'Level {i}'] - res_df[f'Level {i - 1}']) / level_heights[i - 1]
         ) * 100.00
 
     total_mass = 0.0
@@ -106,9 +106,9 @@ def main():
         fig, ax = plt.subplots()
         for i_story in range(num_levels):
             ax.plot(
-                res_df[f"Drift {i_story+1}"],
+                res_df[f"Drift {i_story + 1}"],
                 (res_df['Vb'] / weight) * 100.00,
-                label=f'Level {i_story+1}',
+                label=f'Level {i_story + 1}',
                 color='black',
                 alpha=((i_story + 2.00) / (num_levels + 2.00)),
                 linewidth=((i_story + 2.00) / (num_levels + 2.00)) + 1.00,

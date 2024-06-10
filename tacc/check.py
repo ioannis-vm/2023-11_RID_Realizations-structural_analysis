@@ -8,6 +8,9 @@ import subprocess
 from glob import glob
 
 
+# pylint: disable=subprocess-run-check
+
+
 def process_output_file(file_path):
     """
     Parses an output file to extract information.
@@ -59,7 +62,9 @@ def process_output_file(file_path):
                 running.remove(task)
                 complete.append(task)
         if 'There was an error with ' in line:
-            matched = re.search(r'There was an error with task (\d+)\. stderr:', line)
+            matched = re.search(
+                r'There was an error with task (\d+)\. stderr:', line
+            )
             if matched:
                 task = matched.group(1)
                 matched = re.search(r"stderr: `b('.+')`. stdout:", line)
@@ -106,7 +111,7 @@ def main():
         print(f'  Running: {nrunning}. ({util_prc:.0f}% utilization)')
         if util_prc < 50.00:
             print('WARNING: Consider downscaling job.')
-        print(f'  Finished (in total): {nfin/ntasks*100:.0f}% ({nfin}).')
+        print(f'  Finished (in total): {nfin / ntasks * 100:.0f}% ({nfin}).')
         print(f'  Finished with error: {len(error)}.')
         print()
 
@@ -164,15 +169,17 @@ def get_all_remaining_tasks():
     res = subprocess.run(
         ['squeue', '--me'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
-    running_job_ids = set([x.strip().split(' ')[0] for x in res.stdout.split('\n')][1:][:-1])
-    
+    running_job_ids = set(
+        [x.strip().split(' ')[0] for x in res.stdout.split('\n')][1:][:-1]
+    )
+
     output_files = glob('*.o*')
     stopped = []
     for output_file in output_files:
         job_id = output_file.split('.o')[1]
         if job_id not in running_job_ids:
             stopped.append(output_file)
-    
+
     remaining_tasks = []
     for stopped_file in stopped:
         remaining_tasks.extend(get_remaining_tasks(stopped_file))

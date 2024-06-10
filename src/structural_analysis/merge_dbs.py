@@ -1,3 +1,9 @@
+"""
+Merges result database files.
+
+"""
+
+
 import os
 import sqlite3
 import glob

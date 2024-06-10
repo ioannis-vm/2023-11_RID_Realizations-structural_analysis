@@ -73,7 +73,7 @@ def main():
     )
     filepaths = [
         f"extra/structural_analysis/results/"
-        f"{archetype}/edp/{x+1}/response.parquet"
+        f"{archetype}/edp/{x + 1}/response.parquet"
         for x in range(num_hz)
     ]
 
@@ -84,7 +84,7 @@ def main():
         zjs.append(z)
         njs.append(n)
     xjs = []
-    for hz in [f"{i+1}" for i in range(num_hz)]:
+    for hz in [f"{i + 1}" for i in range(num_hz)]:
         xjs.append(get_sa(hz, base_period))
 
     zjs = np.array(zjs, dtype=float)

@@ -220,7 +220,7 @@ def generate_archetype(
             raise ValueError('`no_LLRS=True` is only available for braced frames.')
 
         for level_counter in range(num_levels):
-            level_tag = f"level_{level_counter+1}"
+            level_tag = f"level_{level_counter + 1}"
             mdl.levels.set_active([level_counter + 1])
 
             # add the lateral columns
@@ -530,15 +530,15 @@ def generate_archetype(
         )
         vertical_offsets = [-sec.properties["d"] / 2.00]
         for level_counter in range(num_levels):
-            level_tag = f"level_{level_counter+1}"
+            level_tag = f"level_{level_counter + 1}"
             sec = sec_collection.retrieve_by_attr(
-                "name", sections["lateral_beams"][f"level_{level_counter+1}"]
+                "name", sections["lateral_beams"][f"level_{level_counter + 1}"]
             )
             vertical_offsets.append(-sec.properties["d"] / 2.00)
 
         # frame columns
         for level_counter in range(num_levels):
-            level_tag = f"level_{level_counter+1}"
+            level_tag = f"level_{level_counter + 1}"
             if level_counter % 2 == 0:
                 even_story_num = False  # (odd because of zero-indexing)
             else:
@@ -645,7 +645,7 @@ def generate_archetype(
 
         # frame beams
         for level_counter in range(num_levels):
-            level_tag = f"level_{level_counter+1}"
+            level_tag = f"level_{level_counter + 1}"
             if level_counter % 2 == 0:
                 even_story_num = False  # (odd because of zero-indexing)
             else:
@@ -743,7 +743,7 @@ def generate_archetype(
         # braces
         brace_subdiv = 8
         for level_counter in range(num_levels):
-            level_tag = f"level_{level_counter+1}"
+            level_tag = f"level_{level_counter + 1}"
             if level_counter % 2 == 0:
                 even_story_num = False  # (odd because of zero-indexing)
             else:

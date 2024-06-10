@@ -3,7 +3,6 @@ Extract EDPs from sqlite database and store them in parquet files
 """
 
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 from extra.structural_analysis.src.db import DB_Handler
 
@@ -31,12 +30,12 @@ def main():
     #             db_handler.delete_record(rrep)
     # # Note: Check for repeated results once again.
 
-
     dfs = {}
     for identifier in tqdm(identifiers):
         df, _, _ = db_handler.retrieve_data(identifier)
         dfs[identifier] = df
 
+    # pylint: disable=consider-iterating-dictionary
     merged_df = pd.concat(
         dfs.values(), keys=[tuple(x.split('::')) for x in dfs.keys()]
     )
@@ -54,8 +53,10 @@ def main():
         'loc',
         'dir_num',
     ]
-    
-    merged_df.index = merged_df.index.droplevel(['suite', 'dt', 'damping', 'scaling', 'dir_num'])
+
+    merged_df.index = merged_df.index.droplevel(
+        ['suite', 'dt', 'damping', 'scaling', 'dir_num']
+    )
 
     merged_df = pd.DataFrame(merged_df, columns=['value'])
 
@@ -69,16 +70,14 @@ def main():
     scaling_factors = []
     for idx in merged_df.index:
         archetype, hazard_level, gm, _, _, _ = idx
-        rsn = int(
-            df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), gm]
-        )
+        rsn = int(df_records.at[(archetype, f"hz_{hazard_level}", "RSN"), gm])
         scaling = df_records.at[(archetype, f"hz_{hazard_level}", "SF"), gm]
         rsns.append(rsn)
         scaling_factors.append(scaling)
 
     merged_df['rsn'] = rsns
     merged_df['scaling_factor'] = scaling_factors
-    merged_df.to_parquet(f'data/edp_results_0_cs.parquet')
+    merged_df.to_parquet('data/edp_results_0_cs.parquet')
 
 
 if __name__ == '__main__':

@@ -20,9 +20,9 @@ Note
 from scipy.interpolate import interp1d
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from src.util import store_info
 from extra.structural_analysis.src.util import read_study_param
-import matplotlib.pyplot as plt
 
 # pylint: disable = invalid-name
 

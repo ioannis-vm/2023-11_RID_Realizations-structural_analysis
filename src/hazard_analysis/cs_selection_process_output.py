@@ -39,7 +39,7 @@ def main():
         for hz in range(num_hz_adjusted):
             path = (
                 f"extra/structural_analysis/results/site_hazard/"
-                f"{arch}/required_records_hz_{hz+1}"
+                f"{arch}/required_records_hz_{hz + 1}"
             )
             df = pd.read_csv(path, skiprows=6, sep="	", index_col=0, header=[0])
             df.columns = pd.Index([x.strip() for x in df.columns])
@@ -50,7 +50,7 @@ def main():
             df.columns = pd.Index(["RSN", "SF"])
             dfs_hz.append(df)
         df = pd.concat(
-            dfs_hz, axis=1, keys=[f"hz_{i+1}" for i in range(num_hz_adjusted)]
+            dfs_hz, axis=1, keys=[f"hz_{i + 1}" for i in range(num_hz_adjusted)]
         )
         dfs_arch.append(df)
 
@@ -90,7 +90,7 @@ def main():
 
     avail_rsns, required_rsns = get_available_rsn_list()
     print(
-        f'{float(len(avail_rsns))/float(len(rsns))*100:.0f}% '
+        f'{float(len(avail_rsns)) / float(len(rsns)) * 100:.0f}% '
         f'of records are available'
     )
 
@@ -103,7 +103,7 @@ def main():
         with open(
             store_info(
                 f"extra/structural_analysis/results/"
-                f"site_hazard/rsns_unique_{group+1}_2.txt"
+                f"site_hazard/rsns_unique_{group + 1}_2.txt"
             ),
             "w",
             encoding="utf-8",
