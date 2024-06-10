@@ -31,21 +31,25 @@ def main():
     # set parameters
     #
 
-    date_prefix = '20240522'
+    date_prefix = '20240529'
 
     #
     # retrieve study variables
     #
 
     nhz = int(read_study_param('extra/structural_analysis/data/study_vars/m'))
-    ngm_cs = int(read_study_param('extra/structural_analysis/data/study_vars/ngm_cs'))
+    ngm_cs = int(
+        read_study_param('extra/structural_analysis/data/study_vars/ngm_cs')
+    )
+
+    nhz_adjusted = nhz + 4
 
     #
     # generate cases
     #
 
     log.info('Generate cases')
-    hazard_levels = [f'{i+1}' for i in range(nhz)]
+    hazard_levels = [f'{i+1}' for i in range(nhz_adjusted)]
     ground_motions = [f'{i+1}' for i in range(ngm_cs)]
     directions = ('x', 'y')
     codes = ("smrf", "scbf", "brbf")
@@ -145,22 +149,9 @@ def main():
             _,
             _,
         ) = construct_arguments(identifier)
-        if 'pulse' in suite:
-            pulse_bool = True
-        else:
-            pulse_bool = False
         if suite == 'cs':
             df_records = df_record_dict['cs']
-            rsn = int(
-                df_records.at[
-                    (archetype, f"hz_{hazard_level}", "RSN"), str(ground_motion)
-                ]
-            )
-        elif 'cms' in suite:
-            df_records = df_record_dict['cms']
-            rsn = df_records.loc[
-                (*split_archetype(archetype), int(hazard_level), pulse_bool), 'rsn'
-            ].to_list()[int(ground_motion) - 1]
+            rsn = int( df_records.at[ (archetype, f"hz_{hazard_level}", "RSN"), str(ground_motion) ] )
         else:
             raise ValueError(f'Encountered invalid suite: {suite}')
         rsns[identifier] = rsn
@@ -184,7 +175,6 @@ def main():
         [durations[rsns[idnt]] for idnt in required if idnt not in no_rsn_available],
         index=pd.Index([idnt for idnt in required if idnt not in no_rsn_available]),
     )
-
     duration_series.sort_values(ascending=False, inplace=True)
 
     # #
@@ -226,7 +216,7 @@ def main():
     #
     real_duration_estimate = duration_series * 2.00 * 80.00
 
-    num_nodes = 4
+    num_nodes = 2
     num_cores = 47 * num_nodes
     num_hours = 48.00
     max_runtime = num_hours * 60.00 * 60.00 * num_cores
@@ -241,31 +231,31 @@ def main():
 
         # Get another item
         identifier, duration = duration_dict.popitem()
-        # If we exceed the runtime
+
+        # Check if adding this duration exceeds max runtime
         if np.sum(durations) + duration > max_runtime:
-            # and if there are more items
-            if duration_dict:
-
-                print(len(duration_dict))
-
-                # put it back in and move to next group
-                duration_dict[identifier] = duration
+            # If the current group is not empty, add it to groups
+            if group:
                 groups.append(group)
                 group = []
                 durations = []
-                
 
-        # otherwise keep adding to the group
+        # Add the item to the current group
         group.append(identifier)
         durations.append(duration)
 
-    # add the last group
-    groups.append(group)
+    # Add the last group if it's not empty
+    if group:
+        groups.append(group)
 
     print(len(groups))
 
     # Check that we included all required identifiers.
-    in_groups = set(groups[0] + groups[1])
+    flattened_groups = []
+    for group in groups:
+        flattened_groups.extend(group)
+
+    in_groups = set(required)
     for x in required:
         if x not in in_groups:
             print(x)

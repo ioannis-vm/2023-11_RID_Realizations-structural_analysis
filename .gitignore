@@ -14,3 +14,5 @@ tacc/*/
 /data
 /figures
 /src/chosing_dt/
+/tacc/generate_taskfile_no_llrs.py
+/src/structural_analysis/response_2d_openseesrt.py
